@@ -6,7 +6,7 @@ import {
   Search,
   Users,
   Calendar,
-  Sprout,
+  Sparkles,
   Wallet,
   MessageSquare,
   Moon,
@@ -58,6 +58,7 @@ export function CommandPaletteModal({
         s.is_published &&
         (s.name.toLowerCase().includes(q) ||
           s.role.toLowerCase().includes(q) ||
+          s.dream_title.toLowerCase().includes(q) ||
           String(s.roll_no).padStart(2, '0').includes(q) ||
           s.tags.some((t) => t.toLowerCase().includes(q)))
     )
@@ -118,11 +119,11 @@ export function CommandPaletteModal({
               </button>
               <button
                 type="button"
-                onClick={() => jumpTo('#taman-impian')}
+                onClick={() => jumpTo('#papan-cita-cita')}
                 className="flex items-center gap-2 rounded-xl px-3 py-2 text-left hover:bg-white/70 dark:hover:bg-white/10"
               >
-                <Sprout className="size-3.5 text-[#3FB8A5]" />
-                <span>Studio Taman Impian AI</span>
+                <Sparkles className="size-3.5 text-[#3FB8A5]" strokeWidth={1.5} />
+                <span>Papan Cita-Cita 3D</span>
               </button>
               <button
                 type="button"
@@ -183,7 +184,7 @@ export function CommandPaletteModal({
                   <div>
                     <span className="font-semibold">{st.name}</span>
                     <span className="ml-2 text-[#5B6073] dark:text-[#A4AAC0]">
-                      · {st.role}
+                      · {st.dream_title}
                     </span>
                   </div>
                   <span className="font-mono text-[11px] text-[#5B6073]">

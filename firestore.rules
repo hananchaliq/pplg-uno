@@ -42,13 +42,21 @@ service cloud.firestore {
 
     function isValidStudent(data) {
       return data.keys().hasAll(['roll_no', 'name', 'role', 'tone', 'is_published']) &&
-        data.keys().hasOnly(['roll_no', 'name', 'role', 'avatar_url', 'bio', 'tags', 'tone', 'is_published']) &&
+        data.keys().hasOnly([
+          'roll_no', 'name', 'role', 'avatar_url', 'bio', 'tags', 'tone',
+          'dream_title', 'dream_reason', 'dream_description', 'dream_paper_color',
+          'is_published'
+        ]) &&
         data.roll_no is int && data.roll_no >= 1 && data.roll_no <= 99 &&
         data.name is string && data.name.size() >= 1 && data.name.size() <= 80 &&
         data.role is string && data.role.size() >= 1 && data.role.size() <= 60 &&
         (!('avatar_url' in data) || (data.avatar_url is string && data.avatar_url.size() <= 2000)) &&
         (!('bio' in data) || (data.bio is string && data.bio.size() <= 300)) &&
         (!('tags' in data) || (data.tags is list && data.tags.size() <= 10 && (data.tags.size() == 0 || (data.tags[0] is string && data.tags[0].size() <= 40)))) &&
+        (!('dream_title' in data) || (data.dream_title is string && data.dream_title.size() <= 120)) &&
+        (!('dream_reason' in data) || (data.dream_reason is string && data.dream_reason.size() <= 500)) &&
+        (!('dream_description' in data) || (data.dream_description is string && data.dream_description.size() <= 600)) &&
+        (!('dream_paper_color' in data) || (data.dream_paper_color is string && data.dream_paper_color.size() <= 20)) &&
         data.tone is int && data.tone >= 1 && data.tone <= 5 &&
         data.is_published is bool;
     }
@@ -116,7 +124,11 @@ service cloud.firestore {
       allow list: if existing().is_published == true || isAdmin();
       allow create: if isAdmin() && isValidId(studentId) && isValidStudent(incoming());
       allow update: if isAdmin() && isValidId(studentId) && isValidStudent(incoming()) &&
-        incoming().diff(existing()).affectedKeys().hasOnly(['roll_no', 'name', 'role', 'avatar_url', 'bio', 'tags', 'tone', 'is_published']);
+        incoming().diff(existing()).affectedKeys().hasOnly([
+          'roll_no', 'name', 'role', 'avatar_url', 'bio', 'tags', 'tone',
+          'dream_title', 'dream_reason', 'dream_description', 'dream_paper_color',
+          'is_published'
+        ]);
       allow delete: if isAdmin() && isValidId(studentId);
     }
 

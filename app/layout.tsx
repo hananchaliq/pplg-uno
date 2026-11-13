@@ -21,18 +21,18 @@ const jetbrainsMono = JetBrains_Mono({
 export const metadata: Metadata = {
   title: 'XII PPLG 1 · Rumah Digital & Botanical Studio',
   description:
-    'Rumah digital resmi kelas XII PPLG 1 (Pengembangan Perangkat Lunak dan Gim): 22 siswa, jadwal live WIB, 3D Dev Desk Assembly, kas kelas transparan, buku tamu realtime, dan AI Botanical Garden & Visual Studio.',
+    'Rumah digital resmi kelas XII PPLG 1 (Pengembangan Perangkat Lunak dan Gim): 22 siswa, Papan Tulis Cita-Cita 3D, jadwal live WIB, 3D Dev Desk Assembly, kas kelas transparan, dan buku tamu realtime.',
   openGraph: {
     title: 'XII PPLG 1 · Rumah Digital & Botanical Studio',
     description:
-      'Rumah digital resmi kelas XII PPLG 1 (Pengembangan Perangkat Lunak dan Gim): 22 siswa, jadwal live WIB, 3D Dev Desk Assembly, kas kelas transparan, buku tamu realtime, dan AI Botanical Garden & Visual Studio.',
+      'Rumah digital resmi kelas XII PPLG 1 (Pengembangan Perangkat Lunak dan Gim): 22 siswa, Papan Tulis Cita-Cita 3D, jadwal live WIB, 3D Dev Desk Assembly, kas kelas transparan, dan buku tamu realtime.',
     type: 'website',
   },
   twitter: {
     card: 'summary_large_image',
     title: 'XII PPLG 1 · Rumah Digital & Botanical Studio',
     description:
-      'Rumah digital resmi kelas XII PPLG 1 (Pengembangan Perangkat Lunak dan Gim): 22 siswa, jadwal live WIB, 3D Dev Desk Assembly, kas kelas transparan, buku tamu realtime, dan AI Botanical Garden & Visual Studio.',
+      'Rumah digital resmi kelas XII PPLG 1 (Pengembangan Perangkat Lunak dan Gim): 22 siswa, Papan Tulis Cita-Cita 3D, jadwal live WIB, 3D Dev Desk Assembly, kas kelas transparan, dan buku tamu realtime.',
   },
 };
 

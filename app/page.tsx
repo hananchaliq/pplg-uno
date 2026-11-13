@@ -16,9 +16,11 @@ import {
   AnnouncementItem,
   GuestbookEntry,
   KasTransaction,
+  StudentRecord,
 } from '@/lib/class-data';
 import {
   db,
+  auth,
   validateFirestoreConnection,
   handleFirestoreError,
   OperationType,
@@ -33,7 +35,7 @@ import {
 } from 'firebase/firestore';
 import { DevDeskHeroCanvas } from '@/components/three/dev-desk-canvas';
 import { ClassMembersSection } from '@/components/sections/class-members-section';
-import { DreamGardenStudioSection } from '@/components/sections/dream-garden-studio';
+import { DreamBoardSection } from '@/components/three/dream-board-section';
 import {
   LiveScheduleBanner,
   AboutClassSection,
@@ -54,13 +56,15 @@ import {
   Sun,
   Moon,
   ArrowRight,
-  Sprout,
+  Sparkles,
   Shield,
   Github,
   Instagram,
   MessageCircle,
 } from 'lucide-react';
 import { toast } from 'sonner';
+
+const ADMIN_EMAIL = 'ananxpplg1@gmail.com';
 
 export default function HomePage() {
   const { theme, setTheme } = useTheme();
@@ -71,12 +75,34 @@ export default function HomePage() {
   const [selectedStudentId, setSelectedStudentId] = React.useState<string | null>(null);
 
   // Live collections backed by initial deterministic class seed + Firestore sync
+  const [students, setStudents] = React.useState<StudentRecord[]>(INITIAL_STUDENTS);
   const [announcements, setAnnouncements] = React.useState<AnnouncementItem[]>(INITIAL_ANNOUNCEMENTS);
   const [guestbook, setGuestbook] = React.useState<GuestbookEntry[]>(INITIAL_GUESTBOOK);
   const [kasList, setKasList] = React.useState<KasTransaction[]>(INITIAL_KAS);
 
   React.useEffect(() => {
     validateFirestoreConnection();
+
+    // Sync any updated student dream notes from Firestore
+    const unsubStudents = onSnapshot(
+      collection(db, 'students'),
+      (snap) => {
+        if (snap.empty) return;
+        const remoteMap = new Map<string, Partial<StudentRecord>>();
+        snap.forEach((docSnap) => {
+          remoteMap.set(docSnap.id, docSnap.data() as Partial<StudentRecord>);
+        });
+        setStudents((prev) =>
+          prev.map((st) => {
+            const remote = remoteMap.get(st.id);
+            return remote ? { ...st, ...remote } : st;
+          })
+        );
+      },
+      () => {
+        // Fallback to local seed
+      }
+    );
 
     // Listen to approved guestbook notes in Firestore if any are added
     const unsubGuestbook = onSnapshot(
@@ -111,11 +137,55 @@ export default function HomePage() {
     );
 
     return () => {
+      unsubStudents();
       unsubGuestbook();
     };
   }, []);
 
   // Handlers
+  const handleUpdateStudentDream = async (
+    studentId: string,
+    payload: {
+      dream_title: string;
+      dream_reason: string;
+      dream_description: string;
+      dream_paper_color: string;
+    }
+  ) => {
+    const target = students.find((s) => s.id === studentId);
+    if (!target) return;
+
+    const updated: StudentRecord = {
+      ...target,
+      ...payload,
+    };
+
+    setStudents((prev) =>
+      prev.map((s) => (s.id === studentId ? updated : s))
+    );
+
+    if (auth.currentUser?.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
+      try {
+        await setDoc(doc(db, 'students', studentId), {
+          roll_no: updated.roll_no,
+          name: updated.name,
+          role: updated.role,
+          avatar_url: updated.avatar_url,
+          bio: updated.bio,
+          tags: updated.tags,
+          tone: updated.tone,
+          dream_title: updated.dream_title,
+          dream_reason: updated.dream_reason,
+          dream_description: updated.dream_description,
+          dream_paper_color: updated.dream_paper_color,
+          is_published: updated.is_published,
+        });
+      } catch (error) {
+        handleFirestoreError(error, OperationType.WRITE, `students/${studentId}`);
+      }
+    }
+  };
+
   const handleReaction = async (announcementId: string, emoji: string) => {
     setAnnouncements((prev) =>
       prev.map((a) => {
@@ -249,10 +319,11 @@ export default function HomePage() {
               Anggota
             </a>
             <a
-              href="#taman-impian"
-              className="hover:text-[#0B0D14] hover:underline whitespace-nowrap shrink-0 transition dark:hover:text-white"
+              href="#papan-cita-cita"
+              className="inline-flex items-center gap-1.5 hover:text-[#0B0D14] hover:underline whitespace-nowrap shrink-0 transition dark:hover:text-white"
             >
-              Taman Impian
+              <Sparkles className="size-3.5 text-[#6E78E8]" strokeWidth={1.5} />
+              <span>Papan Cita-Cita</span>
             </a>
             <a
               href="#jadwal-kelas"
@@ -343,16 +414,16 @@ export default function HomePage() {
               <div className="flex flex-col justify-between lg:col-span-6">
                 <div>
                   <p className="font-mono text-xs uppercase tracking-[0.24em] text-[#6E78E8]">
-                    01 · Rumah Digital &amp; Studio Kreatif
+                    01 · Rumah Digital &amp; Studio Rekayasa
                   </p>
                   <h1
                     id="hero-heading"
                     className="mt-3 text-balance text-3xl font-extrabold tracking-tight sm:text-5xl lg:leading-[1.1]"
                   >
-                    Kelas {INITIAL_CLASS_INFO.name} — Merakit Kode, Gim 3D &amp; Taman Impian.
+                    Kelas {INITIAL_CLASS_INFO.name} — Merakit Kode, Gim 3D &amp; Masa Depan Impian.
                   </h1>
                   <p className="mt-4 max-w-xl text-base leading-relaxed text-[#5B6073] dark:text-[#A4AAC0]">
-                    {INITIAL_CLASS_INFO.tagline} Akses direktori lanyard 22 teman sekelas, pantau jadwal praktikum waktu nyata WIB, hingga rancang tata letak tanaman untuk sudut hijau laboratorium kita.
+                    {INITIAL_CLASS_INFO.tagline} Akses direktori lanyard 22 teman sekelas, baca tempelan kertas cita-cita 3D interaktif di papan tulis kelas, hingga pantau jadwal praktikum waktu nyata WIB.
                   </p>
 
                   {/* 2 Pill Buttons: 1 Solid Ink, 1 Outline */}
@@ -365,11 +436,11 @@ export default function HomePage() {
                       <ArrowRight className="size-4" />
                     </a>
                     <a
-                      href="#taman-impian"
+                      href="#papan-cita-cita"
                       className="inline-flex h-11 items-center gap-2 rounded-full border border-[#0B0D14] bg-transparent px-6 text-xs font-semibold text-[#0B0D14] whitespace-nowrap transition hover:bg-black/5 active:scale-97 dark:border-white dark:text-white dark:hover:bg-white/10"
                     >
-                      <Sprout className="size-4 text-[#3FB8A5]" />
-                      <span>Desain Taman Impian AI</span>
+                      <Sparkles className="size-4 text-[#6E78E8]" strokeWidth={1.5} />
+                      <span>Papan Cita-Cita 3D</span>
                     </a>
                   </div>
                 </div>
@@ -390,7 +461,7 @@ export default function HomePage() {
                         Komposisi Kelas
                       </span>
                       <p className="mt-0.5 font-mono text-sm font-bold tabular-nums">
-                        22 Siswa · 3 Rel Lanyard
+                        22 Siswa · 22 Dream Notes
                       </p>
                     </div>
                     <div>
@@ -418,13 +489,13 @@ export default function HomePage() {
 
         {/* SECTION 2: ANGGOTA KELAS (Mandatory Second Section using TeamLanyardRail) */}
         <ClassMembersSection
-          students={INITIAL_STUDENTS}
+          students={students}
           selectedStudentId={selectedStudentId}
           onClearSelectedStudent={() => setSelectedStudentId(null)}
         />
 
-        {/* SECTION 3: DREAM GARDEN & BOTANICAL VISUAL STUDIO */}
-        <DreamGardenStudioSection />
+        {/* SECTION 3: PAPAN TULIS CITA-CITA 3D (Replaces Taman Impian) */}
+        <DreamBoardSection students={students} />
 
         {/* SECTION 4: TENTANG KELAS */}
         <AboutClassSection info={INITIAL_CLASS_INFO} />
@@ -433,7 +504,7 @@ export default function HomePage() {
         <ScheduleAndPiketSection
           schedules={INITIAL_SCHEDULES}
           piket={INITIAL_PIKET}
-          students={INITIAL_STUDENTS}
+          students={students}
         />
 
         {/* SECTION 6 & 7: PENGUMUMAN & AGENDA */}
@@ -510,7 +581,7 @@ export default function HomePage() {
       <CommandPaletteModal
         open={cmdOpen}
         onOpenChange={setCmdOpen}
-        students={INITIAL_STUDENTS}
+        students={students}
         announcements={announcements}
         onSelectStudent={(id) => setSelectedStudentId(id)}
         onOpenAdmin={() => setAdminOpen(true)}
@@ -520,9 +591,11 @@ export default function HomePage() {
       <AdminDrawerModal
         open={adminOpen}
         onOpenChange={setAdminOpen}
+        students={students}
         announcements={announcements}
         guestbook={guestbook}
         kasTransactions={kasList}
+        onUpdateStudentDream={handleUpdateStudentDream}
         onAddAnnouncement={handleAddAnnouncement}
         onDeleteAnnouncement={handleDeleteAnnouncement}
         onModerateGuestbook={handleModerateGuestbook}

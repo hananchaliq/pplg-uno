@@ -16,7 +16,7 @@
     },
     "Student": {
       "title": "Student",
-      "description": "Anggota kelas XII PPLG 1",
+      "description": "Anggota kelas XII PPLG 1 beserta catatan cita-cita",
       "type": "object",
       "properties": {
         "roll_no": { "type": "integer" },
@@ -26,6 +26,10 @@
         "bio": { "type": "string", "maxLength": 300 },
         "tags": { "type": "array" },
         "tone": { "type": "integer" },
+        "dream_title": { "type": "string", "maxLength": 120 },
+        "dream_reason": { "type": "string", "maxLength": 500 },
+        "dream_description": { "type": "string", "maxLength": 600 },
+        "dream_paper_color": { "type": "string", "maxLength": 20 },
         "is_published": { "type": "boolean" }
       },
       "required": ["roll_no", "name", "role", "tone", "is_published"]

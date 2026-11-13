@@ -11,6 +11,23 @@ export interface ClassInfo {
   };
 }
 
+export const DREAM_PAPER_PALETTE = [
+  { name: 'Sage', hex: '#DDEBD6' },
+  { name: 'Sky', hex: '#D3E6F3' },
+  { name: 'Lilac', hex: '#DDD6F2' },
+  { name: 'Orchid', hex: '#E6DAF0' },
+  { name: 'Peach', hex: '#F9E3CB' },
+  { name: 'Aqua', hex: '#CFEBE2' },
+] as const;
+
+export const PIN_CHART_COLORS = [
+  '#6E78E8', // --chart-1 (iris)
+  '#3FB8A5', // --chart-2 (mint)
+  '#F0A04B', // --chart-3 (amber)
+  '#E0709A', // --chart-4 (rose)
+  '#4FA3E0', // --chart-5 (sky)
+] as const;
+
 export interface StudentRecord {
   id: string;
   roll_no: number;
@@ -22,6 +39,10 @@ export interface StudentRecord {
   links: { label: string; href: string }[];
   tone: 1 | 2 | 3 | 4 | 5;
   drop?: number;
+  dream_title: string;
+  dream_reason: string;
+  dream_description: string;
+  dream_paper_color?: string;
   is_published: boolean;
 }
 
@@ -104,33 +125,6 @@ export interface GuestbookEntry {
   created_at: string;
 }
 
-export interface GardenPlantNode {
-  id: string;
-  name: string;
-  latinName: string;
-  layer: 'Kanopi' | 'Semak' | 'Penutup Tanah' | 'Aksen Air/Batu';
-  sunNeed: 'Teduh' | 'Semi-Teduh' | 'Penuh';
-  moisture: 'Lembap' | 'Sedang' | 'Kering';
-  colorHex: string;
-  xPercent: number;
-  yPercent: number;
-  radiusMeters: number;
-  careTip: string;
-}
-
-export interface GardenLayoutPlan {
-  title: string;
-  styleName: string;
-  summary: string;
-  widthMeters: number;
-  lengthMeters: number;
-  sunlight: string;
-  soilType: string;
-  hardscapeElements: string[];
-  plants: GardenPlantNode[];
-  visualUrl?: string;
-}
-
 export function generatePastelAvatarDataUri(
   rollNo: number,
   name: string,
@@ -162,9 +156,9 @@ export function generatePastelAvatarDataUri(
 
 export const INITIAL_CLASS_INFO: ClassInfo = {
   name: 'XII PPLG 1',
-  tagline: 'Merakit baris kode, gim interaktif, dan kenangan tahun terakhir di bangku SMK.',
+  tagline: 'Merakit baris kode, gim interaktif, dan masa depan impian dari bangku SMK.',
   description:
-    'Rumah digital resmi kelas XII Pengembangan Perangkat Lunak dan Gim 1. Tempat kumpul 22 siswa: dari jadwal praktikum lab, antrean deadline, laporan kas transparan, sampai studio desain taman & aset visual.',
+    'Rumah digital resmi kelas XII Pengembangan Perangkat Lunak dan Gim 1. Tempat kumpul 22 siswa: dari jadwal praktikum lab, papan tulis cita-cita 3D, antrean deadline, laporan kas transparan, sampai buku tamu.',
   homeroom_teacher: 'Bpk. Hendra Wijaya, S.Kom., M.T.',
   school_year: '2026 / 2027',
   socials: {
@@ -181,6 +175,10 @@ const STUDENT_SPECS: Array<{
   tags: string[];
   tone: 1 | 2 | 3 | 4 | 5;
   drop: number;
+  dream_title: string;
+  dream_reason: string;
+  dream_description: string;
+  dream_paper_color: string;
 }> = [
   {
     roll_no: 1,
@@ -189,6 +187,10 @@ const STUDENT_SPECS: Array<{
     tags: ['Backend', 'DevOps', 'Next.js'],
     tone: 1,
     drop: 8,
+    dream_title: 'Cloud & Distributed Architect',
+    dream_reason: 'Sering lihat layanan sekolah tumbang waktu trafik ujian naik, jadi tertantang bikin infrastruktur yang tahan banting.',
+    dream_description: 'Mendalami Kubernetes, Go, dan arsitektur multi-region sambil membangun platform cloud mandiri untuk laboratorium SMK.',
+    dream_paper_color: '#D3E6F3',
   },
   {
     roll_no: 2,
@@ -197,6 +199,10 @@ const STUDENT_SPECS: Array<{
     tags: ['Game Dev', 'Three.js', 'C#'],
     tone: 2,
     drop: 18,
+    dream_title: 'Lead Gameplay & Physics Dev',
+    dream_reason: 'Dari kecil penasaran gimana mekanik ayunan, suspensi, dan tabrakan di gim 3D bisa terasa sangat hidup.',
+    dream_description: 'Merilis gim indie 3D bersama teman sekelas di Steam serta mendalami C++ dan simulasi fisika waktu nyata.',
+    dream_paper_color: '#DDEBD6',
   },
   {
     roll_no: 3,
@@ -205,6 +211,10 @@ const STUDENT_SPECS: Array<{
     tags: ['UI/UX', 'Figma', 'Docs'],
     tone: 3,
     drop: 4,
+    dream_title: 'Staff Product Designer',
+    dream_reason: 'Banyak aplikasi canggih yang gagal membantu pengguna hanya karena alur antarmukanya membingungkan.',
+    dream_description: 'Membangun sistem desain yang inklusif, ramah aksesibilitas, dan punya dokumentasi produk yang jernih.',
+    dream_paper_color: '#DDD6F2',
   },
   {
     roll_no: 4,
@@ -213,6 +223,10 @@ const STUDENT_SPECS: Array<{
     tags: ['Frontend', 'Motion', 'Tailwind'],
     tone: 4,
     drop: 14,
+    dream_title: 'Creative Design Engineer',
+    dream_reason: 'Suka banget sama perpaduan antara kode presisi dan animasi mikro yang bikin pengguna betah berinteraksi.',
+    dream_description: 'Menguasai WebGL, fisika pegas interaktif, dan berkontribusi ke pustaka komponen UI open-source global.',
+    dream_paper_color: '#E6DAF0',
   },
   {
     roll_no: 5,
@@ -221,6 +235,10 @@ const STUDENT_SPECS: Array<{
     tags: ['Data', 'PostgreSQL', 'FinTech'],
     tone: 5,
     drop: 22,
+    dream_title: 'FinTech Data Engineer',
+    dream_reason: 'Ngurus kas kelas bikin sadar betapa pentingnya pencatatan keuangan yang akurat, cepat, dan transparan.',
+    dream_description: 'Merancang sistem buku besar (ledger) terdistribusi yang aman dari duplikasi transaksi dan mudah diaudit.',
+    dream_paper_color: '#F9E3CB',
   },
   {
     roll_no: 6,
@@ -229,6 +247,10 @@ const STUDENT_SPECS: Array<{
     tags: ['Fullstack', 'Supabase', 'TypeScript'],
     tone: 1,
     drop: 6,
+    dream_title: 'Fullstack SaaS Founder',
+    dream_reason: 'Ingin membantu UMKM di sekitar kota supaya punya sistem kasir dan inventaris yang semudah aplikasi pesan instan.',
+    dream_description: 'Membangun produk SaaS mandiri selepas lulus SMK dengan stack Next.js, PostgreSQL, dan analitik waktu nyata.',
+    dream_paper_color: '#CFEBE2',
   },
   {
     roll_no: 7,
@@ -237,6 +259,10 @@ const STUDENT_SPECS: Array<{
     tags: ['IoT', 'Networking', 'Linux'],
     tone: 2,
     drop: 16,
+    dream_title: 'Embedded & IoT Engineer',
+    dream_reason: 'Paling senang kalau baris kode yang ditulis bisa langsung menggerakkan perangkat keras nyata di dunia fisik.',
+    dream_description: 'Mengembangkan sensor pintar hemat daya berbasis Rust dan ESP32 untuk otomasi ruang laboratorium.',
+    dream_paper_color: '#DDEBD6',
   },
   {
     roll_no: 8,
@@ -245,6 +271,10 @@ const STUDENT_SPECS: Array<{
     tags: ['Creative Dev', 'WebGL', 'Shader'],
     tone: 3,
     drop: 10,
+    dream_title: 'Technical Artist & Shader Dev',
+    dream_reason: 'Kagum sama cara rumus matematika dan trigonometri bisa berubah jadi efek cahaya, air, dan kaca di layar.',
+    dream_description: 'Berkarier di studio gim atau agensi digital sebagai jembatan kreatif antara 3D artist dan engine programmer.',
+    dream_paper_color: '#D3E6F3',
   },
   {
     roll_no: 9,
@@ -253,6 +283,10 @@ const STUDENT_SPECS: Array<{
     tags: ['Backend', 'Go', 'Docker'],
     tone: 4,
     drop: 12,
+    dream_title: 'Database Internals Engineer',
+    dream_reason: 'Merasa puas luar biasa setiap kali berhasil memangkas waktu eksekusi query dari 2 detik menjadi 8 milidetik.',
+    dream_description: 'Mempelajari struktur penyimpanan B-Tree, indexing lanjutan, dan merancang API berkecepatan tinggi.',
+    dream_paper_color: '#DDD6F2',
   },
   {
     roll_no: 10,
@@ -261,6 +295,10 @@ const STUDENT_SPECS: Array<{
     tags: ['Game Dev', 'Godot', 'Pixel Art'],
     tone: 5,
     drop: 20,
+    dream_title: 'Indie Game Director',
+    dream_reason: 'Ingin menyampaikan cerita petualangan khas Nusantara lewat desain level gim yang menantang tapi adil.',
+    dream_description: 'Menyelesaikan gim platformer pixel-art di Godot Engine dan membawanya ke pameran gim Asia Tenggara.',
+    dream_paper_color: '#F9E3CB',
   },
   {
     roll_no: 11,
@@ -269,6 +307,10 @@ const STUDENT_SPECS: Array<{
     tags: ['Frontend', 'GSAP', 'React'],
     tone: 1,
     drop: 5,
+    dream_title: 'Interactive WebGL Architect',
+    dream_reason: 'Website yang berkesan itu seperti ruang pameran interaktif, bukan sekadar halaman teks kaku yang digulir.',
+    dream_description: 'Menciptakan pengalaman web 3D pemenang penghargaan yang tetap ringan dijalankan di perangkat standar.',
+    dream_paper_color: '#E6DAF0',
   },
   {
     roll_no: 12,
@@ -277,6 +319,10 @@ const STUDENT_SPECS: Array<{
     tags: ['Mobile Dev', 'Flutter', 'Kotlin'],
     tone: 2,
     drop: 15,
+    dream_title: 'Lead Mobile Platform Engineer',
+    dream_reason: 'Hampir semua orang mengakses layanan digital dari ponsel, jadi aplikasi mobile harus gesit dan hemat baterai.',
+    dream_description: 'Mendalami Kotlin & Flutter serta membangun aplikasi edukasi offline-first untuk sekolah di daerah pelosok.',
+    dream_paper_color: '#CFEBE2',
   },
   {
     roll_no: 13,
@@ -285,6 +331,10 @@ const STUDENT_SPECS: Array<{
     tags: ['Security', 'Pentest', 'Auth'],
     tone: 3,
     drop: 9,
+    dream_title: 'Cyber Security Analyst',
+    dream_reason: 'Sering ikut kompetisi Capture The Flag (CTF) dan sadar banyak sistem publik yang masih punya celah keamanan dasar.',
+    dream_description: 'Menjadi peneliti keamanan aplikasi (AppSec) dan bug hunter yang melindungi privasi data jutaan pengguna.',
+    dream_paper_color: '#DDEBD6',
   },
   {
     roll_no: 14,
@@ -293,6 +343,10 @@ const STUDENT_SPECS: Array<{
     tags: ['3D Art', 'Blender', 'Shader'],
     tone: 4,
     drop: 19,
+    dream_title: '3D Environment Artist',
+    dream_reason: 'Dari hobi bikin sketsa gedung di buku tulis, sekarang ketagihan menghidupkan dunia 3D utuh di Blender.',
+    dream_description: 'Merancang aset lingkungan 3D bergaya stylized yang dioptimalkan untuk gim konsol dan ruang WebXR.',
+    dream_paper_color: '#D3E6F3',
   },
   {
     roll_no: 15,
@@ -301,6 +355,10 @@ const STUDENT_SPECS: Array<{
     tags: ['Backend', 'Node.js', 'API'],
     tone: 5,
     drop: 7,
+    dream_title: 'Platform Automation Engineer',
+    dream_reason: 'Enggan melakukan pekerjaan repetitif dua kali kalau bisa diotomasi dengan skrip dalam waktu lima menit.',
+    dream_description: 'Membangun ekosistem bot dan pipeline integrasi API yang menghemat ribuan jam kerja tim rekayasa.',
+    dream_paper_color: '#DDD6F2',
   },
   {
     roll_no: 16,
@@ -309,6 +367,10 @@ const STUDENT_SPECS: Array<{
     tags: ['Frontend', 'A11y', 'Testing'],
     tone: 1,
     drop: 17,
+    dream_title: 'Web Performance & A11y Lead',
+    dream_reason: 'Teknologi yang baik harus bisa diakses siapa saja, termasuk pengguna pembaca layar dan jaringan lambat.',
+    dream_description: 'Menjadi spesialis optimasi Core Web Vitals dan standar aksesibilitas WCAG di ekosistem web modern.',
+    dream_paper_color: '#E6DAF0',
   },
   {
     roll_no: 17,
@@ -317,6 +379,10 @@ const STUDENT_SPECS: Array<{
     tags: ['Game Dev', 'WebAudio', 'SFX'],
     tone: 2,
     drop: 11,
+    dream_title: 'Interactive Audio Programmer',
+    dream_reason: 'Suara langkah kaki, denting tombol, dan musik adaptif yang pas bikin dunia gim terasa sepuluh kali lebih hidup.',
+    dream_description: 'Mengembangkan engine audio prosedural berbasis WebAudio dan C++ yang merespons aksi pemain secara dinamis.',
+    dream_paper_color: '#F9E3CB',
   },
   {
     roll_no: 18,
@@ -325,6 +391,10 @@ const STUDENT_SPECS: Array<{
     tags: ['AI', 'Python', 'WebGPU'],
     tone: 3,
     drop: 21,
+    dream_title: 'Applied AI & Edge Engineer',
+    dream_reason: 'Terpukau melihat model visi komputer bisa berjalan langsung di peramban tanpa harus mengirim data ke server.',
+    dream_description: 'Riset optimasi model AI ringan berbasis WebGPU untuk alat bantu belajar interaktif dan asisten kode lokal.',
+    dream_paper_color: '#CFEBE2',
   },
   {
     roll_no: 19,
@@ -333,6 +403,10 @@ const STUDENT_SPECS: Array<{
     tags: ['UI/UX', 'Design System', 'CSS'],
     tone: 4,
     drop: 6,
+    dream_title: 'Design Systems Architect',
+    dream_reason: 'Kekacauan warna dan spasi waktu kerja kelompok bikin aku jatuh cinta pada keteraturan design token.',
+    dream_description: 'Memimpin tim Design System yang menyatukan bahasa visual antara desainer Figma dan engineer produksi.',
+    dream_paper_color: '#DDEBD6',
   },
   {
     roll_no: 20,
@@ -341,6 +415,10 @@ const STUDENT_SPECS: Array<{
     tags: ['Game Dev', 'Three.js', 'Math'],
     tone: 5,
     drop: 14,
+    dream_title: 'Graphics & Simulation Engineer',
+    dream_reason: 'Rumus fisika dan aljabar linear di kelas jadi jauh lebih seru waktu langsung dipraktekkan ke simulasi partikel 3D.',
+    dream_description: 'Merancang engine simulasi visual real-time untuk laboratorium sains virtual dan gim sandbox.',
+    dream_paper_color: '#D3E6F3',
   },
   {
     roll_no: 21,
@@ -349,14 +427,22 @@ const STUDENT_SPECS: Array<{
     tags: ['DevOps', 'CI/CD', 'Fullstack'],
     tone: 1,
     drop: 8,
+    dream_title: 'Site Reliability & DevSecOps',
+    dream_reason: 'Senang luar biasa saat melihat pipeline deployment hijau semua dan rilis berjalan mulus tanpa downtime.',
+    dream_description: 'Membangun infrastruktur CI/CD otomatis yang aman dan terukur untuk tim pengembang lintas negara.',
+    dream_paper_color: '#DDD6F2',
   },
   {
     roll_no: 22,
     role: 'Anggota',
-    bio: 'Eksplorator desain generatif, tata letak taman digital, dan visualisasi data interaktif.',
-    tags: ['Creative Dev', 'Botanical AI', 'UI/UX'],
+    bio: 'Eksplorator desain generatif, seni algoritmik, dan visualisasi data interaktif.',
+    tags: ['Creative Dev', 'Generative Art', 'UI/UX'],
     tone: 2,
     drop: 16,
+    dream_title: 'Creative Technologist',
+    dream_reason: 'Ingin menggabungkan logika pemrograman dengan instalasi seni visual interaktif di ruang pameran.',
+    dream_description: 'Mendirikan studio kreatif yang memproduksi instalasi 3D interaktif, proyeksi pemetaan, dan museum digital.',
+    dream_paper_color: '#F9E3CB',
   },
 ];
 
@@ -377,6 +463,10 @@ export const INITIAL_STUDENTS: StudentRecord[] = STUDENT_SPECS.map((s) => {
     ],
     tone: s.tone,
     drop: s.drop,
+    dream_title: s.dream_title,
+    dream_reason: s.dream_reason,
+    dream_description: s.dream_description,
+    dream_paper_color: s.dream_paper_color,
     is_published: true,
   };
 });
@@ -400,9 +490,9 @@ export const INITIAL_SCHEDULES: ScheduleSlot[] = [
   { id: 'thu-3', weekday: 4, start_time: '12:45', end_time: '15:15', subject: 'Studio Projek Akhir (Capstone)', teacher: 'Tim Produktif PPLG', room: 'Lab Kolaborasi' },
   // Jumat (5)
   { id: 'fri-1', weekday: 5, start_time: '07:00', end_time: '09:00', subject: 'Review Kode & Demo Mingguan', teacher: 'Bpk. Hendra Wijaya', room: 'Lab RPL 1' },
-  { id: 'fri-2', weekday: 5, start_time: '09:15', end_time: '11:15', subject: 'Olahraga & Kebugaran', teacher: 'Bpk. Рико Pratama', room: 'Lapangan Utama' },
+  { id: 'fri-2', weekday: 5, start_time: '09:15', end_time: '11:15', subject: 'Olahraga & Kebugaran', teacher: 'Bpk. Riko Pratama', room: 'Lapangan Utama' },
   // Sabtu (6)
-  { id: 'sat-1', weekday: 6, start_time: '08:00', end_time: '11:30', subject: 'Ekstrakurikuler Game Jam & Taman Kampus', teacher: 'Komunitas PPLG', room: 'Taman Tengah & Lab' },
+  { id: 'sat-1', weekday: 6, start_time: '08:00', end_time: '11:30', subject: 'Ekstrakurikuler Game Jam & Open Source', teacher: 'Komunitas PPLG', room: 'Lab Gim & Multimedia' },
 ];
 
 export const INITIAL_PIKET: PiketDay[] = [
@@ -426,17 +516,17 @@ export const INITIAL_ANNOUNCEMENTS: AnnouncementItem[] = [
   },
   {
     id: 'ann-02',
-    title: 'Rancang Tata Letak Taman Kelas & Sudut Hijau Lab PPLG',
-    body: 'Kelas kita dapat giliran mendesain area hijau di depan Lab RPL 1. Gunakan fitur Studio Desain Taman Impian di bawah buat nyusun layout tanaman, jalur batu, dan render visualnya sebelum dikumpulkan ke wali kelas.',
+    title: 'Papan Tulis Cita-Cita 3D Sudah Aktif — Cek & Perbarui Impianmu!',
+    body: 'Seluruh 22 kertas catatan cita-cita siswa XII PPLG 1 kini terpampang di Papan Tulis Cita-Cita 3D. Arahkan kursor untuk melihat kertas bergerak hidup dan klik kertas untuk membaca alasan serta rencana karier teman sekelasmu.',
     category: 'Event',
     is_pinned: true,
     published_at: '2026-11-11T13:15:00+07:00',
-    reactions: { '🌿': 16, '✨': 11, '👍': 12 },
+    reactions: { '✨': 19, '🚀': 15, '👍': 12 },
   },
   {
     id: 'ann-03',
     title: 'Rekap Kas Bulan November Sudah Diunggah Bendahara',
-    body: 'Iuran kas mingguan Rp10.000 berjalan lancar. Dana keluar minggu ini dipakai untuk perpanjangan domain kelas, kabel HDMI cadangan lab, dan bibit tanaman sudut teras.',
+    body: 'Iuran kas mingguan Rp10.000 berjalan lancar. Dana keluar minggu ini dipakai untuk perpanjangan domain kelas, kabel HDMI cadangan lab, dan spidol papan tulis baru.',
     category: 'Kas',
     is_pinned: false,
     published_at: '2026-11-09T10:00:00+07:00',
@@ -448,23 +538,23 @@ export const INITIAL_EVENTS: EventItem[] = [
   {
     id: 'evt-01',
     title: 'Pameran Karya & Uji Kompetensi Keahlian (UKK) PPLG',
-    description: 'Presentasi langsung aplikasi fullstack, gim 3D interaktif, dan tata ruang hijau digital di hadapan penguji eksternal serta adik kelas.',
+    description: 'Presentasi langsung aplikasi fullstack, gim 3D interaktif, dan portofolio rekayasa perangkat lunak di hadapan penguji eksternal serta adik kelas.',
     location: 'Aula Utama & Lab RPL 1',
     starts_at: '2026-11-28T08:00:00+07:00',
     ends_at: '2026-11-28T15:30:00+07:00',
   },
   {
     id: 'evt-02',
-    title: 'Sesi Foto Buku Tahunan & Penataan Taman Teras Lab',
-    description: 'Dresscode jaket angkatan XII PPLG 1. Bawa properti lanyard kelas dan alat berkebun ringan.',
-    location: 'Taman Tengah SMK & Studio Mini',
+    title: 'Sesi Foto Buku Tahunan & Tempel Kertas Cita-Cita Angkatan',
+    description: 'Dresscode jaket angkatan XII PPLG 1. Bawa properti lanyard kelas dan perangkat kebanggaan masing-masing.',
+    location: 'Lab Kolaborasi & Studio Mini SMK',
     starts_at: '2026-12-05T07:30:00+07:00',
     ends_at: '2026-12-05T13:00:00+07:00',
   },
   {
     id: 'evt-03',
-    title: 'Internal Game Jam 24 Jam: Tema "Botanical Cyber"',
-    description: 'Eksperimen bikin mini-game WebGL atau simulasi ekosistem tanaman dalam waktu 24 jam bersama tim lintas meja.',
+    title: 'Internal Game Jam 24 Jam: Tema "Future Engineers"',
+    description: 'Eksperimen bikin mini-game WebGL atau simulasi fisika interaktif dalam waktu 24 jam bersama tim lintas meja.',
     location: 'Discord Kelas & Lab Gim',
     starts_at: '2026-12-14T09:00:00+07:00',
     ends_at: '2026-12-15T09:00:00+07:00',
@@ -490,11 +580,11 @@ export const INITIAL_ASSIGNMENTS: AssignmentItem[] = [
   },
   {
     id: 'asg-03',
-    subject: 'Desain Antarmuka & Sistem Komponen',
-    title: 'Eksplorasi Denah & Visual Taman Impian Kelas',
-    description: 'Gunakan AI Botanical Studio untuk merancang tata letak tanaman yang cocok dengan pencahayaan teras Lab RPL.',
+    subject: 'Produk Kreatif & Perencanaan Karier',
+    title: 'Rencana Peta Jalan Karier & Dream Note Tahun Terakhir',
+    description: 'Pastikan judul cita-cita, alasan memilih, dan deskripsi rencana belajarmu sudah diperbarui di Papan Tulis Cita-Cita 3D.',
     deadline: '2026-11-23T21:00:00+07:00',
-    link: '#taman-impian',
+    link: '#papan-cita-cita',
   },
 ];
 
@@ -522,17 +612,17 @@ export const INITIAL_RESOURCES: ResourceItem[] = [
   },
   {
     id: 'res-04',
-    title: 'Starter Kit Three.js Procedural Geometry & Instancing',
+    title: 'Starter Kit Three.js Procedural Geometry & Vertex Curl',
     category: 'Repo',
     url: 'https://threejs.org/docs/',
     file_type: 'TypeScript',
   },
   {
     id: 'res-05',
-    title: 'Katalog Tanaman Tropis Tahan Teduh untuk Teras Lab',
+    title: 'Peta Jalan Karier Software & Game Engineer Lulusan SMK',
     category: 'Tools',
-    url: '#taman-impian',
-    file_type: 'Botanical Preset',
+    url: '#papan-cita-cita',
+    file_type: 'Career Guide',
   },
   {
     id: 'res-06',
@@ -556,13 +646,13 @@ export const INITIAL_GALLERY: GalleryPhoto[] = [
   },
   {
     id: 'gal-02',
-    albumTitle: 'Eksperimen Taman & Sudut Hijau Lab',
-    caption: 'Penataan pot Monstera, pakis Boston, dan jalur batu koral di teras samping ruang praktikum.',
+    albumTitle: 'Sesi Menempel Kertas Cita-Cita di Papan Kelas',
+    caption: 'Momen 22 siswa menuliskan target karier impian mereka selepas lulus dari jurusan PPLG.',
     taken_on: '2026-10-02',
     tint: 'tint-sage',
     accent: '#3FB8A5',
     aspect: '4:3',
-    codeSnippet: 'garden.layout({ style: "Tropical Zen", canopy: 4 })',
+    codeSnippet: 'dreamBoard.pin({ student: "Siswa 01..22", state: "zoom" })',
   },
   {
     id: 'gal-03',
@@ -597,12 +687,12 @@ export const INITIAL_GALLERY: GalleryPhoto[] = [
   {
     id: 'gal-06',
     albumTitle: 'Jumat Bersih & Piket Kolaboratif',
-    caption: 'Merapikan manajemen kabel meja server sekaligus menyiram tanaman teras kelas.',
+    caption: 'Merapikan manajemen kabel meja server sekaligus membersihkan papan tulis laboratorium.',
     taken_on: '2026-11-08',
     tint: 'tint-aqua',
     accent: '#3FB8A5',
     aspect: '4:3',
-    codeSnippet: 'piket.verify({ cables: "tidy", plants: "watered" });',
+    codeSnippet: 'piket.verify({ cables: "tidy", board: "clean" });',
   },
 ];
 
@@ -614,7 +704,7 @@ export const INITIAL_KAS: KasTransaction[] = [
   { id: 'kas-05', occurred_on: '2026-09-08', type: 'masuk', amount: 880000, note: 'Iuran kas bulan September' },
   { id: 'kas-06', occurred_on: '2026-09-25', type: 'keluar', amount: 240000, note: 'Konsumsi sesi coding bersama & stiker kelas' },
   { id: 'kas-07', occurred_on: '2026-10-09', type: 'masuk', amount: 880000, note: 'Iuran kas bulan Oktober' },
-  { id: 'kas-08', occurred_on: '2026-10-27', type: 'keluar', amount: 310000, note: 'Bibit tanaman teras lab, pot terakota & media tanam' },
+  { id: 'kas-08', occurred_on: '2026-10-27', type: 'keluar', amount: 310000, note: 'Perlengkapan pameran UKK, kertas catatan & pin papan kelas' },
   { id: 'kas-09', occurred_on: '2026-11-05', type: 'masuk', amount: 880000, note: 'Iuran kas bulan November' },
   { id: 'kas-10', occurred_on: '2026-11-10', type: 'keluar', amount: 185000, note: 'Perpanjangan domain kelas & adaptor HDMI cadangan' },
 ];
@@ -623,21 +713,21 @@ export const INITIAL_GUESTBOOK: GuestbookEntry[] = [
   {
     id: 'gb-01',
     sender_name: 'Siswa 01 (Ketua)',
-    message: 'Selamat datang di rumah digital XII PPLG 1! Jangan lupa cek jadwal piket dan deadline tugas minggu ini ya teman-teman.',
+    message: 'Selamat datang di rumah digital XII PPLG 1! Jangan lupa cek jadwal piket, papan cita-cita 3D, dan deadline tugas minggu ini ya teman-teman.',
     status: 'approved',
     created_at: '2026-11-10T09:00:00+07:00',
   },
   {
     id: 'gb-02',
     sender_name: 'Bpk. Hendra Wijaya',
-    message: 'Bangga melihat inisiatif kelas membangun portal informasi sekaligus studio visual sendiri. Pertahankan semangat kolaborasinya sampai lulus!',
+    message: 'Bangga melihat inisiatif kelas membangun portal informasi sekaligus Papan Tulis Cita-Cita 3D sendiri. Semoga seluruh impian kalian tercapai!',
     status: 'approved',
     created_at: '2026-11-11T11:20:00+07:00',
   },
   {
     id: 'gb-03',
     sender_name: 'Siswa 08 (Kreatif)',
-    message: 'Coba tekan tombol di keyboard fisik kalian waktu lihat Hero 3D di atas, keycap-nya ikut membal! Desain taman teras juga sudah bisa dicoba.',
+    message: 'Coba arahkan kursor ke kertas di Papan Tulis Cita-Cita 3D dan klik salah satu kertasnya, efek kertas melengkung dan zoom 3D-nya mulus banget!',
     status: 'approved',
     created_at: '2026-11-12T15:40:00+07:00',
   },

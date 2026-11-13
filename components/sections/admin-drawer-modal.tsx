@@ -5,22 +5,54 @@ import {
   AnnouncementItem,
   GuestbookEntry,
   KasTransaction,
+  StudentRecord,
+  DREAM_PAPER_PALETTE,
 } from '@/lib/class-data';
+import { validateStudentDreamUpdate } from '@/lib/class-logic';
 import { auth, googleProvider } from '@/lib/firebase/client';
 import { signInWithPopup, signOut, onAuthStateChanged, User } from 'firebase/auth';
-import { Shield, LogIn, LogOut, Check, Trash2, Plus, X, Lock } from 'lucide-react';
+import {
+  Shield,
+  LogIn,
+  LogOut,
+  Check,
+  Trash2,
+  Plus,
+  X,
+  Lock,
+  Sparkles,
+  Save,
+} from 'lucide-react';
 import { toast } from 'sonner';
 
 interface AdminDrawerModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  students: StudentRecord[];
   announcements: AnnouncementItem[];
   guestbook: GuestbookEntry[];
   kasTransactions: KasTransaction[];
-  onAddAnnouncement: (title: string, body: string, category: AnnouncementItem['category']) => Promise<void>;
+  onUpdateStudentDream: (
+    studentId: string,
+    payload: {
+      dream_title: string;
+      dream_reason: string;
+      dream_description: string;
+      dream_paper_color: string;
+    }
+  ) => Promise<void>;
+  onAddAnnouncement: (
+    title: string,
+    body: string,
+    category: AnnouncementItem['category']
+  ) => Promise<void>;
   onDeleteAnnouncement: (id: string) => Promise<void>;
   onModerateGuestbook: (id: string, status: 'approved' | 'rejected') => Promise<void>;
-  onAddKasTransaction: (type: 'masuk' | 'keluar', amount: number, note: string) => Promise<void>;
+  onAddKasTransaction: (
+    type: 'masuk' | 'keluar',
+    amount: number,
+    note: string
+  ) => Promise<void>;
 }
 
 const ADMIN_EMAIL = 'ananxpplg1@gmail.com';
@@ -28,9 +60,11 @@ const ADMIN_EMAIL = 'ananxpplg1@gmail.com';
 export function AdminDrawerModal({
   open,
   onOpenChange,
+  students,
   announcements,
   guestbook,
   kasTransactions,
+  onUpdateStudentDream,
   onAddAnnouncement,
   onDeleteAnnouncement,
   onModerateGuestbook,
@@ -39,12 +73,35 @@ export function AdminDrawerModal({
   const [user, setUser] = React.useState<User | null>(null);
   const [demoAdminUnlocked, setDemoAdminUnlocked] = React.useState(false);
   const [passcode, setPasscode] = React.useState('');
-  const [activeTab, setActiveTab] = React.useState<'guestbook' | 'announcements' | 'kas'>('guestbook');
+  const [activeTab, setActiveTab] = React.useState<
+    'dreams' | 'guestbook' | 'announcements' | 'kas'
+  >('dreams');
 
-  // Form states
+  // Student Dream Note Editor state
+  const [selectedStudentId, setSelectedStudentId] = React.useState<string>(
+    () => students[0]?.id ?? 'siswa-01'
+  );
+  const currentStudent =
+    students.find((s) => s.id === selectedStudentId) ?? students[0];
+
+  const [dreamTitle, setDreamTitle] = React.useState(
+    () => currentStudent?.dream_title ?? ''
+  );
+  const [dreamReason, setDreamReason] = React.useState(
+    () => currentStudent?.dream_reason ?? ''
+  );
+  const [dreamDescription, setDreamDescription] = React.useState(
+    () => currentStudent?.dream_description ?? ''
+  );
+  const [dreamPaperColor, setDreamPaperColor] = React.useState(
+    () => currentStudent?.dream_paper_color ?? DREAM_PAPER_PALETTE[0].hex
+  );
+
+  // Announcement & Kas Form states
   const [annTitle, setAnnTitle] = React.useState('');
   const [annBody, setAnnBody] = React.useState('');
-  const [annCategory, setAnnCategory] = React.useState<AnnouncementItem['category']>('Praktikum');
+  const [annCategory, setAnnCategory] =
+    React.useState<AnnouncementItem['category']>('Praktikum');
 
   const [kasType, setKasType] = React.useState<'masuk' | 'keluar'>('masuk');
   const [kasAmount, setKasAmount] = React.useState('50000');
@@ -60,7 +117,18 @@ export function AdminDrawerModal({
   if (!open) return null;
 
   const isAuthorizedAdmin =
-    demoAdminUnlocked || (user?.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase());
+    demoAdminUnlocked || user?.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
+
+  const handleSelectStudentForEdit = (id: string) => {
+    setSelectedStudentId(id);
+    const st = students.find((s) => s.id === id);
+    if (st) {
+      setDreamTitle(st.dream_title);
+      setDreamReason(st.dream_reason);
+      setDreamDescription(st.dream_description);
+      setDreamPaperColor(st.dream_paper_color || DREAM_PAPER_PALETTE[0].hex);
+    }
+  };
 
   const handleGoogleSignIn = async () => {
     try {
@@ -77,7 +145,9 @@ export function AdminDrawerModal({
       setDemoAdminUnlocked(true);
       toast.success('Mode Admin Tunggal XII PPLG 1 aktif.');
     } else {
-      toast.error('Kode akses salah. Gunakan PPLG1-ADMIN atau Google Sign-In pemilik.');
+      toast.error(
+        'Kode akses salah. Gunakan PPLG1-ADMIN atau Google Sign-In pemilik.'
+      );
     }
   };
 
@@ -97,7 +167,9 @@ export function AdminDrawerModal({
           <div className="flex items-center gap-2.5">
             <Shield className="size-5 text-[#6E78E8]" />
             <div>
-              <h2 className="text-lg font-bold">Panel Admin Tunggal · XII PPLG 1</h2>
+              <h2 className="text-lg font-bold">
+                Panel Admin Tunggal · XII PPLG 1
+              </h2>
               <p className="font-mono text-[11px] text-[#5B6073] dark:text-[#A4AAC0]">
                 Proteksi Akses: Hanya 1 Akun Pengelola Kelas (Tanpa Registrasi Publik)
               </p>
@@ -130,13 +202,17 @@ export function AdminDrawerModal({
               </button>
             </div>
 
-            <form onSubmit={handlePasscodeLogin} className="glass-card tint-sage p-5">
+            <form
+              onSubmit={handlePasscodeLogin}
+              className="glass-card tint-sage p-5"
+            >
               <div className="flex items-center gap-2">
                 <Lock className="size-4 text-[#3FB8A5]" />
                 <h3 className="text-sm font-bold">Opsi 2 · Kunci Sesi Pengurus</h3>
               </div>
               <p className="mt-1 text-xs text-[#5B6073] dark:text-[#A4AAC0]">
-                Untuk pengujian cepat di laboratorium, ketik kode pengurus: <code>PPLG1-ADMIN</code>
+                Untuk pengujian cepat di laboratorium, ketik kode pengurus:{' '}
+                <code>PPLG1-ADMIN</code>
               </p>
               <input
                 type="password"
@@ -158,7 +234,19 @@ export function AdminDrawerModal({
           <div className="mt-5">
             {/* Admin Sub-nav */}
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="flex gap-1.5">
+              <div className="flex flex-wrap gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('dreams')}
+                  className={`inline-flex h-9 items-center gap-1.5 rounded-full px-4 text-xs font-semibold transition ${
+                    activeTab === 'dreams'
+                      ? 'bg-[#0B0D14] text-white dark:bg-white dark:text-[#0B0D14]'
+                      : 'bg-white/60 text-[#5B6073] dark:bg-white/10 dark:text-[#A4AAC0]'
+                  }`}
+                >
+                  <Sparkles className="size-3.5" strokeWidth={1.5} />
+                  <span>Cita-Cita Siswa (22)</span>
+                </button>
                 <button
                   type="button"
                   onClick={() => setActiveTab('guestbook')}
@@ -168,7 +256,8 @@ export function AdminDrawerModal({
                       : 'bg-white/60 text-[#5B6073] dark:bg-white/10 dark:text-[#A4AAC0]'
                   }`}
                 >
-                  Moderasi Buku Tamu ({guestbook.filter((g) => g.status === 'pending').length} Pending)
+                  Buku Tamu ({guestbook.filter((g) => g.status === 'pending').length}{' '}
+                  Pending)
                 </button>
                 <button
                   type="button"
@@ -179,7 +268,7 @@ export function AdminDrawerModal({
                       : 'bg-white/60 text-[#5B6073] dark:bg-white/10 dark:text-[#A4AAC0]'
                   }`}
                 >
-                  Kelola Pengumuman ({announcements.length})
+                  Pengumuman ({announcements.length})
                 </button>
                 <button
                   type="button"
@@ -190,7 +279,7 @@ export function AdminDrawerModal({
                       : 'bg-white/60 text-[#5B6073] dark:bg-white/10 dark:text-[#A4AAC0]'
                   }`}
                 >
-                  Catat Kas Kelas
+                  Catat Kas
                 </button>
               </div>
 
@@ -206,6 +295,119 @@ export function AdminDrawerModal({
                 Keluar Sesi
               </button>
             </div>
+
+            {/* Tab 0: Student Dream Notes CRUD (Papan Cita-Cita 3D) */}
+            {activeTab === 'dreams' && (
+              <form
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  const check = validateStudentDreamUpdate({
+                    dream_title: dreamTitle,
+                    dream_reason: dreamReason,
+                    dream_description: dreamDescription,
+                    dream_paper_color: dreamPaperColor,
+                  });
+                  if (!check.valid || !check.sanitized) {
+                    toast.error(check.error || 'Data cita-cita belum lengkap.');
+                    return;
+                  }
+                  await onUpdateStudentDream(selectedStudentId, check.sanitized);
+                  toast.success(
+                    `Kertas cita-cita ${currentStudent?.name} di Papan 3D berhasil diperbarui!`
+                  );
+                }}
+                className="glass-card tint-lilac mt-5 space-y-4 p-5"
+              >
+                <div className="flex flex-col justify-between gap-2 sm:flex-row sm:items-center">
+                  <div>
+                    <h3 className="text-sm font-bold">
+                      Edit Kertas Cita-Cita Siswa (Papan Tulis 3D)
+                    </h3>
+                    <p className="text-xs text-[#5B6073] dark:text-[#A4AAC0]">
+                      Perubahan langsung memperbarui teks 3D di atas kertas dan Floating Detail Container.
+                    </p>
+                  </div>
+                  <select
+                    aria-label="Pilih Siswa untuk Edit Cita-Cita"
+                    value={selectedStudentId}
+                    onChange={(e) => handleSelectStudentForEdit(e.target.value)}
+                    className="h-9 rounded-xl border border-black/15 bg-white/90 px-3 font-mono text-xs font-semibold text-[#0B0D14] dark:border-white/20 dark:bg-[#151A30] dark:text-white"
+                  >
+                    {students.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        #{String(s.roll_no).padStart(2, '0')} · {s.name} ({s.role})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-12">
+                  <div className="sm:col-span-8">
+                    <label className="block font-mono text-[11px] font-semibold uppercase text-[#5B6073] dark:text-[#A4AAC0]">
+                      Judul Cita-Cita (dream_title)
+                    </label>
+                    <input
+                      type="text"
+                      value={dreamTitle}
+                      onChange={(e) => setDreamTitle(e.target.value)}
+                      placeholder="Contoh: Game Developer / AI Engineer..."
+                      className="mt-1 h-10 w-full rounded-xl border border-black/15 bg-white/90 px-3 text-xs font-semibold text-[#0B0D14] dark:border-white/15 dark:bg-white/10 dark:text-white"
+                    />
+                  </div>
+
+                  <div className="sm:col-span-4">
+                    <label className="block font-mono text-[11px] font-semibold uppercase text-[#5B6073] dark:text-[#A4AAC0]">
+                      Warna Kertas 3D (dream_paper_color)
+                    </label>
+                    <select
+                      value={dreamPaperColor}
+                      onChange={(e) => setDreamPaperColor(e.target.value)}
+                      className="mt-1 h-10 w-full rounded-xl border border-black/15 bg-white/90 px-3 text-xs font-semibold text-[#0B0D14] dark:border-white/15 dark:bg-[#151A30] dark:text-white"
+                    >
+                      {DREAM_PAPER_PALETTE.map((p) => (
+                        <option key={p.hex} value={p.hex}>
+                          {p.name} ({p.hex})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block font-mono text-[11px] font-semibold uppercase text-[#5B6073] dark:text-[#A4AAC0]">
+                    Alasan Memilih Cita-Cita (dream_reason)
+                  </label>
+                  <textarea
+                    rows={2}
+                    value={dreamReason}
+                    onChange={(e) => setDreamReason(e.target.value)}
+                    placeholder="Ceritakan alasan memilih cita-cita ini..."
+                    className="mt-1 w-full rounded-xl border border-black/15 bg-white/90 p-3 text-xs text-[#0B0D14] dark:border-white/15 dark:bg-white/10 dark:text-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-mono text-[11px] font-semibold uppercase text-[#5B6073] dark:text-[#A4AAC0]">
+                    Deskripsi &amp; Rencana Langkah (dream_description)
+                  </label>
+                  <textarea
+                    rows={2}
+                    value={dreamDescription}
+                    onChange={(e) => setDreamDescription(e.target.value)}
+                    placeholder="Langkah dan fokus belajar yang sedang ditempuh..."
+                    className="mt-1 w-full rounded-xl border border-black/15 bg-white/90 p-3 text-xs text-[#0B0D14] dark:border-white/15 dark:bg-white/10 dark:text-white"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  className="inline-flex h-10 items-center gap-2 rounded-full bg-[#0B0D14] px-5 text-xs font-semibold text-white transition hover:opacity-90 dark:bg-white dark:text-[#0B0D14]"
+                >
+                  <Save className="size-3.5" />
+                  <span>Simpan Perubahan Cita-Cita Siswa</span>
+                </button>
+              </form>
+            )}
 
             {/* Tab 1: Guestbook Moderation */}
             {activeTab === 'guestbook' && (
@@ -259,7 +461,11 @@ export function AdminDrawerModal({
                   onSubmit={async (e) => {
                     e.preventDefault();
                     if (!annTitle.trim() || !annBody.trim()) return;
-                    await onAddAnnouncement(annTitle.trim(), annBody.trim(), annCategory);
+                    await onAddAnnouncement(
+                      annTitle.trim(),
+                      annBody.trim(),
+                      annCategory
+                    );
                     setAnnTitle('');
                     setAnnBody('');
                     toast.success('Pengumuman baru berhasil diterbitkan!');
@@ -277,7 +483,11 @@ export function AdminDrawerModal({
                     />
                     <select
                       value={annCategory}
-                      onChange={(e) => setAnnCategory(e.target.value as AnnouncementItem['category'])}
+                      onChange={(e) =>
+                        setAnnCategory(
+                          e.target.value as AnnouncementItem['category']
+                        )
+                      }
                       className="h-9 rounded-xl border border-black/15 bg-white/85 px-3 text-xs dark:bg-[#151A30]"
                     >
                       <option value="Praktikum">Praktikum</option>
@@ -346,7 +556,9 @@ export function AdminDrawerModal({
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                   <select
                     value={kasType}
-                    onChange={(e) => setKasType(e.target.value as 'masuk' | 'keluar')}
+                    onChange={(e) =>
+                      setKasType(e.target.value as 'masuk' | 'keluar')
+                    }
                     className="h-10 rounded-xl border border-black/15 bg-white/85 px-3 text-xs dark:bg-[#151A30]"
                   >
                     <option value="masuk">Pemasukan (+)</option>

@@ -4,29 +4,38 @@ import {
   INITIAL_STUDENTS,
   INITIAL_SCHEDULES,
   INITIAL_KAS,
+  DREAM_PAPER_PALETTE,
 } from './class-data';
 import {
   getActiveScheduleWIB,
   filterStudents,
   summarizeKas,
   validateGuestbookSubmission,
-  buildGardenBlueprint,
+  computeDreamBoardLayout,
+  validateStudentDreamUpdate,
 } from './class-logic';
 
-test('INITIAL_STUDENTS contains exactly 22 students with roll_no 1..22 and tones 1..5', () => {
+test('INITIAL_STUDENTS contains exactly 22 students with roll_no 1..22, tones 1..5, and dream fields', () => {
   assert.equal(INITIAL_STUDENTS.length, 22);
   assert.equal(INITIAL_STUDENTS[0].name, 'Siswa 01');
   assert.equal(INITIAL_STUDENTS[21].name, 'Siswa 22');
   for (const s of INITIAL_STUDENTS) {
     assert.ok(s.tone >= 1 && s.tone <= 5);
     assert.ok(s.avatar_url.startsWith('data:image/svg+xml'));
+    assert.ok(s.dream_title.length >= 3);
+    assert.ok(s.dream_reason.length >= 10);
+    assert.ok(s.dream_description.length >= 10);
   }
 });
 
-test('filterStudents filters by search query and interest tag accurately', () => {
+test('filterStudents filters by search query, dream_title, and interest tag accurately', () => {
   const byNo = filterStudents(INITIAL_STUDENTS, '07', 'Semua');
   assert.equal(byNo.length, 1);
   assert.equal(byNo[0].roll_no, 7);
+
+  const byDream = filterStudents(INITIAL_STUDENTS, 'Cyber Security', 'Semua');
+  assert.equal(byDream.length, 1);
+  assert.equal(byDream[0].roll_no, 13);
 
   const gameDevs = filterStudents(INITIAL_STUDENTS, '', 'Game Dev');
   assert.ok(gameDevs.length >= 3);
@@ -71,17 +80,31 @@ test('validateGuestbookSubmission blocks honeypot, empty names, and oversized me
   assert.equal(valid.sanitized?.sender_name, 'Siswa 04');
 });
 
-test('buildGardenBlueprint returns a structured garden layout with plant nodes', () => {
-  const plan = buildGardenBlueprint({
-    style: 'Tropis Rindang',
-    sunlight: 'Semi-Teduh',
-    soilType: 'Humus Organik',
-    widthMeters: 8,
-    lengthMeters: 5,
-    customPrompt: 'Sudut baca hijau di depan Lab RPL 1',
+test('computeDreamBoardLayout generates 22 organic 3D note poses with ±2°..±5° Z-rotation and pastel colors', () => {
+  const poses = computeDreamBoardLayout(INITIAL_STUDENTS);
+  assert.equal(poses.length, 22);
+  const validHexes = new Set(DREAM_PAPER_PALETTE.map((p) => p.hex));
+  for (const pose of poses) {
+    const absDeg = Math.abs(pose.rotZDeg);
+    assert.ok(absDeg >= 2 && absDeg <= 5, `Expected rotation between 2° and 5°, got ${pose.rotZDeg}`);
+    assert.ok(validHexes.has(pose.paperColorHex as typeof DREAM_PAPER_PALETTE[number]['hex']));
+  }
+});
+
+test('validateStudentDreamUpdate validates and sanitizes student dream note edits', () => {
+  const invalid = validateStudentDreamUpdate({
+    dream_title: 'A',
+    dream_reason: 'Pendek',
+    dream_description: 'Valid description',
   });
-  assert.equal(plan.widthMeters, 8);
-  assert.equal(plan.lengthMeters, 5);
-  assert.ok(plan.plants.length >= 4);
-  assert.ok(plan.summary.includes('Sudut baca hijau'));
+  assert.equal(invalid.valid, false);
+
+  const valid = validateStudentDreamUpdate({
+    dream_title: '  AI Research Engineer  ',
+    dream_reason: 'Ingin mengembangkan model AI bahasa daerah yang akurat.',
+    dream_description: 'Belajar PyTorch, linear algebra, dan arsitektur Transformer sejak kelas XII.',
+    dream_paper_color: '#D3E6F3',
+  });
+  assert.equal(valid.valid, true);
+  assert.equal(valid.sanitized?.dream_title, 'AI Research Engineer');
 });

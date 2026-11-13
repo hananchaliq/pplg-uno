@@ -23,12 +23,11 @@ const CODE_SNIPPETS = [
     '}',
   ],
   [
-    '// lib/garden-engine.ts — Botanical AI',
-    'const plan = await generateGardenLayout({',
-    '  style: "Tropis Rindang",',
-    '  model: "gemini-nano-banana-2.1",',
-    '  zone: "Teras Lab RPL 1",',
-    '});',
+    '// three/dream-board-section.tsx — 3D Notes',
+    'const poses = computeDreamBoardLayout(students);',
+    'deformPaperGeometry(paperGeo, curl, windWave);',
+    'pinGroup.position.z = isZoomed ? 0.47 : 0.05;',
+    '// 22 Kertas Cita-Cita XII PPLG 1',
   ],
   [
     '// game/loop.ts — PPLG Interactive',

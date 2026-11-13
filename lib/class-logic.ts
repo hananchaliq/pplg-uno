@@ -2,8 +2,8 @@ import {
   StudentRecord,
   ScheduleSlot,
   KasTransaction,
-  GardenLayoutPlan,
-  GardenPlantNode,
+  DREAM_PAPER_PALETTE,
+  PIN_CHART_COLORS,
 } from './class-data';
 
 export interface ActiveScheduleStatus {
@@ -108,7 +108,7 @@ export function getActiveScheduleWIB(
     currentSlot: null,
     nextSlot: null,
     minutesRemaining: 0,
-    summaryText: 'Jam pelajaran hari ini sudah selesai. Waktunya ngoding santai atau menyiram taman kelas.',
+    summaryText: 'Jam pelajaran hari ini sudah selesai. Waktunya ngoding santai atau mengecek papan cita-cita kelas.',
   };
 }
 
@@ -135,7 +135,8 @@ export function filterStudents(
     const inRole = student.role.toLowerCase().includes(q);
     const inRoll = String(student.roll_no).padStart(2, '0').includes(q);
     const inTags = student.tags.some((t) => t.toLowerCase().includes(q));
-    return inName || inRole || inRoll || inTags;
+    const inDream = student.dream_title.toLowerCase().includes(q);
+    return inName || inRole || inRoll || inTags || inDream;
   });
 }
 
@@ -239,269 +240,134 @@ export function validateGuestbookSubmission(input: {
   };
 }
 
-export interface GardenPreferencesInput {
-  style: 'Tropis Rindang' | 'Zen Minimalis' | 'Polinator Berbunga' | 'Edible & Herbal';
-  sunlight: 'Teduh' | 'Semi-Teduh' | 'Penuh';
-  soilType: 'Lempung Subur' | 'Berpasir Drainase Cepat' | 'Humus Organik';
-  widthMeters: number;
-  lengthMeters: number;
-  customPrompt?: string;
+export interface DreamNoteBoardPose {
+  studentId: string;
+  rollNo: number;
+  col: number;
+  row: number;
+  x: number;
+  y: number;
+  z: number;
+  rotZRad: number;
+  rotZDeg: number;
+  paperColorHex: string;
+  paperColorName: string;
+  pinColorHex: string;
+  swayPhase: number;
 }
 
-export function buildGardenBlueprint(prefs: GardenPreferencesInput): GardenLayoutPlan {
-  const widthMeters = Math.max(2, Math.min(20, Math.round(prefs.widthMeters || 6)));
-  const lengthMeters = Math.max(2, Math.min(20, Math.round(prefs.lengthMeters || 4)));
+export function getSeededPaperColor(rollNo: number, customHex?: string): {
+  name: string;
+  hex: string;
+} {
+  if (customHex) {
+    const found = DREAM_PAPER_PALETTE.find(
+      (p) => p.hex.toLowerCase() === customHex.toLowerCase()
+    );
+    if (found) return found;
+  }
+  const idx = Math.abs((rollNo * 7 + 3) % DREAM_PAPER_PALETTE.length);
+  return DREAM_PAPER_PALETTE[idx] ?? DREAM_PAPER_PALETTE[0];
+}
 
-  const catalogs: Record<GardenPreferencesInput['style'], GardenPlantNode[]> = {
-    'Tropis Rindang': [
-      {
-        id: 'pl-1',
-        name: 'Monstera Deliciosa',
-        latinName: 'Monstera deliciosa',
-        layer: 'Semak',
-        sunNeed: 'Semi-Teduh',
-        moisture: 'Lembap',
-        colorHex: '#3FB8A5',
-        xPercent: 22,
-        yPercent: 28,
-        radiusMeters: 1.1,
-        careTip: 'Siram 2–3 kali seminggu dan bersihkan daun agar fotosintesis optimal.',
-      },
-      {
-        id: 'pl-2',
-        name: 'Calathea Orbifolia',
-        latinName: 'Goeppertia orbifolia',
-        layer: 'Penutup Tanah',
-        sunNeed: 'Teduh',
-        moisture: 'Lembap',
-        colorHex: '#6E78E8',
-        xPercent: 52,
-        yPercent: 68,
-        radiusMeters: 0.75,
-        careTip: 'Jaga kelembapan tanah dan hindari sinar matahari siang langsung.',
-      },
-      {
-        id: 'pl-3',
-        name: 'Palem Kuning',
-        latinName: 'Dypsis lutescens',
-        layer: 'Kanopi',
-        sunNeed: 'Semi-Teduh',
-        moisture: 'Sedang',
-        colorHex: '#4FA3E0',
-        xPercent: 78,
-        yPercent: 26,
-        radiusMeters: 1.4,
-        careTip: 'Pangkas pelepah tua sebulan sekali untuk menjaga sirkulasi udara.',
-      },
-      {
-        id: 'pl-4',
-        name: 'Pakis Boston',
-        latinName: 'Nephrolepis exaltata',
-        layer: 'Semak',
-        sunNeed: 'Teduh',
-        moisture: 'Lembap',
-        colorHex: '#3FB8A5',
-        xPercent: 28,
-        yPercent: 72,
-        radiusMeters: 0.9,
-        careTip: 'Semprot kabut air halus saat cuaca siang sedang terik.',
-      },
-      {
-        id: 'pl-5',
-        name: 'Kolam Batu & Lumut Air',
-        latinName: 'Taxiphyllum barbieri',
-        layer: 'Aksen Air/Batu',
-        sunNeed: 'Semi-Teduh',
-        moisture: 'Lembap',
-        colorHex: '#F0A04B',
-        xPercent: 72,
-        yPercent: 66,
-        radiusMeters: 1.0,
-        careTip: 'Gunakan pompa sirkulasi kecil agar air tetap jernih dan bebas jentik.',
-      },
-    ],
-    'Zen Minimalis': [
-      {
-        id: 'zn-1',
-        name: 'Bambu Jepang Mini',
-        latinName: 'Pleioblastus fortunei',
-        layer: 'Kanopi',
-        sunNeed: 'Semi-Teduh',
-        moisture: 'Sedang',
-        colorHex: '#3FB8A5',
-        xPercent: 18,
-        yPercent: 24,
-        radiusMeters: 1.2,
-        careTip: 'Batasi akar dengan pembatas pot tanam agar rapi.',
-      },
-      {
-        id: 'zn-2',
-        name: 'Bonsai Serut & Batu Kali',
-        latinName: 'Streblus asper',
-        layer: 'Semak',
-        sunNeed: 'Penuh',
-        moisture: 'Sedang',
-        colorHex: '#6E78E8',
-        xPercent: 54,
-        yPercent: 45,
-        radiusMeters: 1.15,
-        careTip: 'Pangkas pucuk ranting tiap 3 minggu untuk mempertahankan siluet.',
-      },
-      {
-        id: 'zn-3',
-        name: 'Lumut Karpet Kyoto',
-        latinName: 'Leucobryum glaucum',
-        layer: 'Penutup Tanah',
-        sunNeed: 'Teduh',
-        moisture: 'Lembap',
-        colorHex: '#4FA3E0',
-        xPercent: 34,
-        yPercent: 74,
-        radiusMeters: 0.95,
-        careTip: 'Pertahankan permukaan tetap lembap dengan penyiraman lembut.',
-      },
-      {
-        id: 'zn-4',
-        name: 'Lentera Batu & Koral Putih',
-        latinName: 'Yukimi Doro Hardscape',
-        layer: 'Aksen Air/Batu',
-        sunNeed: 'Penuh',
-        moisture: 'Kering',
-        colorHex: '#F0A04B',
-        xPercent: 80,
-        yPercent: 68,
-        radiusMeters: 0.9,
-        careTip: 'Bersihkan batu koral setiap akhir bulan agar bebas lumut liar.',
-      },
-    ],
-    'Polinator Berbunga': [
-      {
-        id: 'fl-1',
-        name: 'Lavender Tropis',
-        latinName: 'Lavandula angustifolia',
-        layer: 'Semak',
-        sunNeed: 'Penuh',
-        moisture: 'Kering',
-        colorHex: '#6E78E8',
-        xPercent: 26,
-        yPercent: 32,
-        radiusMeters: 0.95,
-        careTip: 'Pastikan media tanam berpori dan mendapat sinar pagi.',
-      },
-      {
-        id: 'fl-2',
-        name: 'Pentas Lanceolata Pink',
-        latinName: 'Pentas lanceolata',
-        layer: 'Semak',
-        sunNeed: 'Penuh',
-        moisture: 'Sedang',
-        colorHex: '#E0709A',
-        xPercent: 64,
-        yPercent: 30,
-        radiusMeters: 1.05,
-        careTip: 'Bunga mekar sepanjang tahun dan mengundang kupu-kupu.',
-      },
-      {
-        id: 'fl-3',
-        name: 'Marigold Emas',
-        latinName: 'Tagetes erecta',
-        layer: 'Penutup Tanah',
-        sunNeed: 'Penuh',
-        moisture: 'Sedang',
-        colorHex: '#F0A04B',
-        xPercent: 42,
-        yPercent: 70,
-        radiusMeters: 0.85,
-        careTip: 'Potong kuntum yang layu untuk memicu tunas bunga baru.',
-      },
-      {
-        id: 'fl-4',
-        name: 'Tabebuya Mini Pot',
-        latinName: 'Handroanthus chrysotrichus',
-        layer: 'Kanopi',
-        sunNeed: 'Penuh',
-        moisture: 'Sedang',
-        colorHex: '#3FB8A5',
-        xPercent: 80,
-        yPercent: 64,
-        radiusMeters: 1.3,
-        careTip: 'Berikan pupuk NPK rendah nitrogen menjelang musim kemarau.',
-      },
-    ],
-    'Edible & Herbal': [
-      {
-        id: 'ed-1',
-        name: 'Rosemary & Mint Bed',
-        latinName: 'Salvia rosmarinus',
-        layer: 'Semak',
-        sunNeed: 'Penuh',
-        moisture: 'Sedang',
-        colorHex: '#3FB8A5',
-        xPercent: 25,
-        yPercent: 34,
-        radiusMeters: 0.9,
-        careTip: 'Panen pucuk daun secara berkala agar batang bercabang rimbun.',
-      },
-      {
-        id: 'ed-2',
-        name: 'Tomat Ceri Rambat',
-        latinName: 'Solanum lycopersicum',
-        layer: 'Kanopi',
-        sunNeed: 'Penuh',
-        moisture: 'Lembap',
-        colorHex: '#E0709A',
-        xPercent: 72,
-        yPercent: 28,
-        radiusMeters: 1.15,
-        careTip: 'Pasang ajir bambu dan siram pangkal akar tiap pagi.',
-      },
-      {
-        id: 'ed-3',
-        name: 'Kemangi & Selada Hidro-Pot',
-        latinName: 'Ocimum basilicum',
-        layer: 'Penutup Tanah',
-        sunNeed: 'Semi-Teduh',
-        moisture: 'Lembap',
-        colorHex: '#4FA3E0',
-        xPercent: 46,
-        yPercent: 72,
-        radiusMeters: 0.85,
-        careTip: 'Cocok dipanen untuk bekal makan siang bersama di kelas.',
-      },
-      {
-        id: 'ed-4',
-        name: 'Bangku Kayu & Kompos Mini',
-        latinName: 'Bio-Compost Station',
-        layer: 'Aksen Air/Batu',
-        sunNeed: 'Teduh',
-        moisture: 'Sedang',
-        colorHex: '#F0A04B',
-        xPercent: 82,
-        yPercent: 70,
-        radiusMeters: 0.95,
-        careTip: 'Olah daun kering taman menjadi humus organik setiap 4 minggu.',
-      },
-    ],
+/**
+ * Computes deterministic 3D board coordinates and organic hand-pinned Z-rotations
+ * (±2° to ±5°) for all 22 students on the Classroom Dream Board.
+ */
+export function computeDreamBoardLayout(students: StudentRecord[]): DreamNoteBoardPose[] {
+  const published = students.filter((s) => s.is_published);
+  // 4 rows: 6, 6, 5, 5 notes across the board for organic balance
+  const rowCounts = [6, 6, 5, 5];
+  const poses: DreamNoteBoardPose[] = [];
+
+  let cursor = 0;
+  for (let row = 0; row < rowCounts.length; row++) {
+    const colsInRow = rowCounts[row];
+    for (let col = 0; col < colsInRow; col++) {
+      if (cursor >= published.length) break;
+      const st = published[cursor];
+      cursor++;
+
+      // Normalized horizontal & vertical distribution on a 13.2 x 7.4 board surface
+      const spanX = colsInRow === 6 ? 10.6 : 8.8;
+      const baseX = colsInRow === 1 ? 0 : -spanX / 2 + (col / (colsInRow - 1)) * spanX;
+      const baseY = 2.25 - row * 1.48;
+
+      // Seeded organic offsets from roll_no
+      const seedA = Math.sin(st.roll_no * 12.9898) * 43758.5453;
+      const fracA = seedA - Math.floor(seedA);
+      const seedB = Math.cos(st.roll_no * 78.233) * 29451.135;
+      const fracB = seedB - Math.floor(seedB);
+
+      const jitterX = (fracA - 0.5) * 0.16;
+      const jitterY = (fracB - 0.5) * 0.12;
+
+      // Rotation between ±2° and ±5°, alternating sign naturally
+      const sign = st.roll_no % 2 === 0 ? 1 : -1;
+      const deg = sign * (2 + fracA * 3); // ±2.0° .. ±5.0°
+      const rotZRad = (deg * Math.PI) / 180;
+
+      const paperColor = getSeededPaperColor(st.roll_no, st.dream_paper_color);
+      const pinColorHex = PIN_CHART_COLORS[(st.roll_no - 1) % PIN_CHART_COLORS.length];
+
+      poses.push({
+        studentId: st.id,
+        rollNo: st.roll_no,
+        col,
+        row,
+        x: Number((baseX + jitterX).toFixed(3)),
+        y: Number((baseY + jitterY).toFixed(3)),
+        z: 0.14,
+        rotZRad: Number(rotZRad.toFixed(4)),
+        rotZDeg: Number(deg.toFixed(2)),
+        paperColorHex: paperColor.hex,
+        paperColorName: paperColor.name,
+        pinColorHex,
+        swayPhase: Number((st.roll_no * 0.65).toFixed(2)),
+      });
+    }
+  }
+
+  return poses;
+}
+
+export function validateStudentDreamUpdate(input: {
+  dream_title: string;
+  dream_reason: string;
+  dream_description: string;
+  dream_paper_color?: string;
+}): {
+  valid: boolean;
+  error?: string;
+  sanitized?: {
+    dream_title: string;
+    dream_reason: string;
+    dream_description: string;
+    dream_paper_color: string;
   };
+} {
+  const title = input.dream_title.replace(/[<>]/g, '').trim();
+  const reason = input.dream_reason.replace(/[<>]/g, '').trim();
+  const description = input.dream_description.replace(/[<>]/g, '').trim();
+  const color = (input.dream_paper_color || '#DDEBD6').trim();
 
-  const selectedPlants = catalogs[prefs.style] ?? catalogs['Tropis Rindang'];
+  if (title.length < 3 || title.length > 120) {
+    return { valid: false, error: 'Judul cita-cita wajib 3–120 karakter.' };
+  }
+  if (reason.length < 6 || reason.length > 500) {
+    return { valid: false, error: 'Alasan memilih cita-cita wajib 6–500 karakter.' };
+  }
+  if (description.length < 6 || description.length > 600) {
+    return { valid: false, error: 'Deskripsi rencana cita-cita wajib 6–600 karakter.' };
+  }
 
   return {
-    title: `Denah Taman ${prefs.style} (${widthMeters}m × ${lengthMeters}m)`,
-    styleName: prefs.style,
-    summary:
-      prefs.customPrompt && prefs.customPrompt.trim().length > 0
-        ? `Dirancang khusus untuk preferensi "${prefs.customPrompt.trim()}" dengan pencahayaan ${prefs.sunlight.toLowerCase()} dan media ${prefs.soilType.toLowerCase()}.`
-        : `Tata letak berlapis (kanopi, semak, penutup tanah) untuk pencahayaan ${prefs.sunlight.toLowerCase()} dengan media tanam ${prefs.soilType.toLowerCase()}.`,
-    widthMeters,
-    lengthMeters,
-    sunlight: prefs.sunlight,
-    soilType: prefs.soilType,
-    hardscapeElements: [
-      'Jalur Pijakan Batu Andesit Anti-Slip',
-      'Bangku Diskusi Kayu Ulin Tahan Cuaca',
-      'Sensor Kelembapan Tanah IoT Kelas PPLG',
-    ],
-    plants: selectedPlants,
+    valid: true,
+    sanitized: {
+      dream_title: title,
+      dream_reason: reason,
+      dream_description: description,
+      dream_paper_color: color,
+    },
   };
 }

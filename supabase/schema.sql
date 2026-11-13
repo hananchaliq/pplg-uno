@@ -23,10 +23,20 @@ create table if not exists students (
   tags text[] default '{}',
   links jsonb default '[]'::jsonb,
   tone smallint not null default 1 check (tone between 1 and 5),
+  dream_title text default 'Software Engineer',
+  dream_reason text default 'Ingin bikin produk teknologi yang dipakai banyak orang dan bermanfaat.',
+  dream_description text default 'Fokus mendalami full-stack development dan arsitektur sistem sebelum lulus.',
+  dream_paper_color text,
   sort_order int default 0,
   is_published boolean default true,
   created_at timestamptz default now()
 );
+
+alter table students
+  add column if not exists dream_title text default 'Software Engineer',
+  add column if not exists dream_reason text default 'Ingin bikin produk teknologi yang dipakai banyak orang dan bermanfaat.',
+  add column if not exists dream_description text default 'Fokus mendalami full-stack development dan arsitektur sistem sebelum lulus.',
+  add column if not exists dream_paper_color text;
 
 create table if not exists schedules (
   id uuid primary key default gen_random_uuid(),

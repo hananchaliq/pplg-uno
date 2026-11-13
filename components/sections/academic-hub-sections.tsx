@@ -91,7 +91,7 @@ export function AboutClassSection({ info }: { info: ClassInfo }) {
       title: 'Budaya Kolaborasi & Transparansi',
       tint: 'tint-peach',
       code: '03 · Culture',
-      desc: '22 siswa saling bantu dari review pull request, piket kebersihan laboratorium, penataan taman kelas, hingga kas terbuka.',
+      desc: '22 siswa saling bantu dari review pull request, piket kebersihan laboratorium, papan cita-cita 3D, hingga kas terbuka.',
     },
   ];
 
