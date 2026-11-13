@@ -194,12 +194,12 @@ export function ClassMembersSection({
             <div
               role="tablist"
               aria-label="Pilih baris rel lanyard siswa"
-              className="inline-flex items-center gap-1 self-start rounded-full border border-black/10 bg-white/55 p-1 dark:border-white/15 dark:bg-white/5"
+              className="flex flex-wrap items-center gap-1 self-start rounded-2xl border border-black/10 bg-white/55 p-1 sm:rounded-full dark:border-white/15 dark:bg-white/5"
             >
               {[
-                { idx: 0 as const, label: 'Rel 1 (Absen 01–08)' },
-                { idx: 1 as const, label: 'Rel 2 (Absen 09–15)' },
-                { idx: 2 as const, label: 'Rel 3 (Absen 16–22)' },
+                { idx: 0 as const, label: 'Rel 1 (01–08)' },
+                { idx: 1 as const, label: 'Rel 2 (09–15)' },
+                { idx: 2 as const, label: 'Rel 3 (16–22)' },
               ].map((tab) => (
                 <button
                   key={tab.idx}
@@ -211,7 +211,7 @@ export function ClassMembersSection({
                     setActiveBadge(null);
                     setFlippedBadge(null);
                   }}
-                  className={`h-8 rounded-full px-3.5 font-mono text-xs font-medium whitespace-nowrap transition ${
+                  className={`h-8 rounded-full px-3 font-mono text-[11px] font-medium whitespace-nowrap transition sm:px-3.5 sm:text-xs ${
                     railGroup === tab.idx
                       ? 'bg-[#6E78E8] text-white shadow-sm'
                       : 'text-[#5B6073] hover:text-[#0B0D14] dark:text-[#A4AAC0] dark:hover:text-white'
@@ -268,17 +268,17 @@ export function ClassMembersSection({
           </div>
         )}
 
-        {/* Quick 22-Student Roster Jump Strip for Accessibility & Instant Inspection */}
+        {/* Quick 22-Student Roster 2-Column Mobile Card Grid for Accessibility & Instant Inspection */}
         <div className="mt-6 border-t border-black/10 pt-5 dark:border-white/10">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-wrap items-center justify-between gap-2">
             <span className="font-mono text-[11px] uppercase tracking-wider text-[#5B6073] dark:text-[#A4AAC0]">
-              Indeks Cepat 22 Siswa (Klik untuk membuka kartu di rel):
+              Direktori Cepat 22 Siswa (2-Kolom Card Mobile · Klik untuk buka Lanyard):
             </span>
             <span className="font-mono text-[11px] tabular-nums text-[#5B6073] dark:text-[#A4AAC0]">
-              22 / 22 Aktif
+              22 / 22 Siswa Aktif · Class of 2026
             </span>
           </div>
-          <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-11">
+          <div className="mt-3 grid grid-cols-2 gap-2.5 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-11">
             {students
               .filter((s) => s.is_published)
               .map((student, idx) => (
@@ -302,12 +302,18 @@ export function ClassMembersSection({
                       setFlippedBadge(idx - 15);
                     }
                   }}
-                  className="flex items-center justify-between rounded-xl border border-black/10 bg-white/60 px-2.5 py-1.5 text-left text-xs transition hover:border-[#6E78E8] hover:bg-white dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/15"
+                  className="flex min-w-0 flex-col justify-between rounded-xl border border-black/10 bg-white/65 p-2.5 text-left text-xs transition hover:border-[#6E78E8] hover:bg-white dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/15"
                 >
-                  <span className="truncate font-medium">{student.name}</span>
-                  <span className="ml-1 font-mono text-[10px] tabular-nums text-[#5B6073] dark:text-[#A4AAC0]">
-                    #{String(student.roll_no).padStart(2, '0')}
-                  </span>
+                  <div className="flex w-full items-center justify-between gap-1">
+                    <span className="truncate font-bold">{student.name}</span>
+                    <span className="shrink-0 font-mono text-[10px] font-semibold tabular-nums text-[#6E78E8]">
+                      #{String(student.roll_no).padStart(2, '0')}
+                    </span>
+                  </div>
+                  <div className="mt-1 flex w-full items-center justify-between gap-1 font-mono text-[9px] text-[#5B6073] dark:text-[#A4AAC0]">
+                    <span className="truncate">{student.role}</span>
+                    <span className="shrink-0 tabular-nums">{student.nis || `202310${String(student.roll_no).padStart(2, '0')}`}</span>
+                  </div>
                 </button>
               ))}
           </div>

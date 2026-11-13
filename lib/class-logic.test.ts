@@ -4,6 +4,7 @@ import {
   INITIAL_STUDENTS,
   INITIAL_SCHEDULES,
   INITIAL_KAS,
+  INITIAL_FAREWELL_LETTERS,
   DREAM_PAPER_PALETTE,
 } from './class-data';
 import {
@@ -13,9 +14,11 @@ import {
   validateGuestbookSubmission,
   computeDreamBoardLayout,
   validateStudentDreamUpdate,
+  validateFarewellLetter,
+  formatBootProgress,
 } from './class-logic';
 
-test('INITIAL_STUDENTS contains exactly 22 students with roll_no 1..22, tones 1..5, and dream fields', () => {
+test('INITIAL_STUDENTS contains exactly 22 students with roll_no 1..22, nis, capsule_message, and dream fields', () => {
   assert.equal(INITIAL_STUDENTS.length, 22);
   assert.equal(INITIAL_STUDENTS[0].name, 'Siswa 01');
   assert.equal(INITIAL_STUDENTS[21].name, 'Siswa 22');
@@ -25,6 +28,8 @@ test('INITIAL_STUDENTS contains exactly 22 students with roll_no 1..22, tones 1.
     assert.ok(s.dream_title.length >= 3);
     assert.ok(s.dream_reason.length >= 10);
     assert.ok(s.dream_description.length >= 10);
+    assert.ok(s.nis && s.nis.startsWith('202310'));
+    assert.ok(s.capsule_message && s.capsule_message.length >= 10);
   }
 });
 
@@ -43,7 +48,6 @@ test('filterStudents filters by search query, dream_title, and interest tag accu
 });
 
 test('getActiveScheduleWIB detects ongoing and holiday states properly', () => {
-  // Monday 08:00 WIB -> 01:00 UTC
   const mondayMorningUtc = new Date('2026-11-16T01:00:00Z');
   const status = getActiveScheduleWIB(INITIAL_SCHEDULES, mondayMorningUtc);
   assert.equal(status.state, 'ongoing');
@@ -51,7 +55,6 @@ test('getActiveScheduleWIB detects ongoing and holiday states properly', () => {
   assert.ok(status.currentSlot?.subject.includes('Pemrograman Web'));
   assert.equal(status.minutesRemaining, 75);
 
-  // Sunday -> holiday
   const sundayUtc = new Date('2026-11-15T04:00:00Z');
   const sunStatus = getActiveScheduleWIB(INITIAL_SCHEDULES, sundayUtc);
   assert.equal(sunStatus.state, 'holiday');
@@ -91,7 +94,7 @@ test('computeDreamBoardLayout generates 22 organic 3D note poses with ±2°..±5
   }
 });
 
-test('validateStudentDreamUpdate validates and sanitizes student dream note edits', () => {
+test('validateStudentDreamUpdate validates and sanitizes student dream note edits and capsule_message', () => {
   const invalid = validateStudentDreamUpdate({
     dream_title: 'A',
     dream_reason: 'Pendek',
@@ -104,7 +107,40 @@ test('validateStudentDreamUpdate validates and sanitizes student dream note edit
     dream_reason: 'Ingin mengembangkan model AI bahasa daerah yang akurat.',
     dream_description: 'Belajar PyTorch, linear algebra, dan arsitektur Transformer sejak kelas XII.',
     dream_paper_color: '#D3E6F3',
+    capsule_message: '  Sampai jumpa di tahun 2031! ',
   });
   assert.equal(valid.valid, true);
   assert.equal(valid.sanitized?.dream_title, 'AI Research Engineer');
+  assert.equal(valid.sanitized?.capsule_message, 'Sampai jumpa di tahun 2031!');
+});
+
+test('validateFarewellLetter and formatBootProgress work deterministically', () => {
+  assert.equal(INITIAL_FAREWELL_LETTERS.length, 4);
+
+  const badLetter = validateFarewellLetter({
+    author_name: 'A',
+    author_role: 'Siswa',
+    title: 'Hi',
+    body: 'Pendek',
+  });
+  assert.equal(badLetter.valid, false);
+
+  const goodLetter = validateFarewellLetter({
+    author_name: '  Siswa 01 ',
+    author_role: 'Ketua Kelas',
+    title: 'Sampai Jumpa di Puncak',
+    body: 'Terima kasih atas 3 tahun kebersamaan di Lab RPL 1!',
+    memory_highlight: 'Ujian Praktik PPLG 2026',
+  });
+  assert.equal(goodLetter.valid, true);
+  assert.equal(goodLetter.sanitized?.author_name, 'Siswa 01');
+
+  assert.deepEqual(formatBootProgress(0), {
+    formattedPct: '00%',
+    activeStageIndex: 0,
+  });
+  assert.deepEqual(formatBootProgress(100), {
+    formattedPct: '100%',
+    activeStageIndex: 3,
+  });
 });

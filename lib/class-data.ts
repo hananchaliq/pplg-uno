@@ -31,6 +31,7 @@ export const PIN_CHART_COLORS = [
 export interface StudentRecord {
   id: string;
   roll_no: number;
+  nis?: string;
   name: string;
   role: string;
   avatar_url: string;
@@ -43,7 +44,18 @@ export interface StudentRecord {
   dream_reason: string;
   dream_description: string;
   dream_paper_color?: string;
+  capsule_message?: string;
   is_published: boolean;
+}
+
+export interface FarewellLetter {
+  id: string;
+  author_name: string;
+  author_role: string;
+  title: string;
+  body: string;
+  memory_highlight: string;
+  created_at: string;
 }
 
 export interface ScheduleSlot {
@@ -449,9 +461,11 @@ const STUDENT_SPECS: Array<{
 export const INITIAL_STUDENTS: StudentRecord[] = STUDENT_SPECS.map((s) => {
   const padded = String(s.roll_no).padStart(2, '0');
   const name = `Siswa ${padded}`;
+  const nis = `202310${padded}`;
   return {
     id: `siswa-${padded}`,
     roll_no: s.roll_no,
+    nis,
     name,
     role: s.role,
     avatar_url: generatePastelAvatarDataUri(s.roll_no, name, s.tone),
@@ -467,9 +481,49 @@ export const INITIAL_STUDENTS: StudentRecord[] = STUDENT_SPECS.map((s) => {
     dream_reason: s.dream_reason,
     dream_description: s.dream_description,
     dream_paper_color: s.dream_paper_color,
+    capsule_message: `Kapsul Waktu 2026 — Terima kasih teman-teman XII PPLG 1 atas 3 tahun debug kode, praktikum lab, dan tawa bersama. Sampai bertemu lagi sebagai ${s.dream_title}!`,
     is_published: true,
   };
 });
+
+export const INITIAL_FAREWELL_LETTERS: FarewellLetter[] = [
+  {
+    id: 'fw-01',
+    author_name: 'Bpk. Hendra Wijaya, S.Kom., M.T.',
+    author_role: 'Wali Kelas XII PPLG 1',
+    title: 'Teruslah Menulis Baris Kode yang Bermakna',
+    body: 'Tiga tahun melihat kalian tumbuh dari baris HTML pertama hingga merakit arsitektur fullstack dan simulasi 3D adalah kebanggaan terbesar Bapak. Jangan pernah takut menghadapi error di dunia nyata — setiap bug adalah pelajaran menuju kematangan.',
+    memory_highlight: 'Sesi lembur persiapan UKK & pameran karya di Lab RPL 1',
+    created_at: '2026-11-01T08:00:00+07:00',
+  },
+  {
+    id: 'fw-02',
+    author_name: 'Siswa 01 & Siswa 02',
+    author_role: 'Ketua & Wakil Ketua Kelas',
+    title: 'Untuk 22 Engineer Hebat di Ruangan Ini',
+    body: 'Terima kasih sudah jadi keluarga kedua yang selalu kompak, mulai dari saling bantu beresin merge conflict lima menit sebelum presentasi sampai patungan kas kelas tanpa drama. Semoga semua mimpi di papan tulis kelas kita terwujud satu per satu!',
+    memory_highlight: 'Hackathon internal & rilis website kapsul kelulusan XII PPLG 1',
+    created_at: '2026-11-05T14:20:00+07:00',
+  },
+  {
+    id: 'fw-03',
+    author_name: 'Siswa 03 & Siswa 04',
+    author_role: 'Tim Sekretaris Kelas',
+    title: 'Catatan Terakhir di Buku Presensi XII PPLG 1',
+    body: 'Sebentar lagi tidak ada lagi teriakan pengingat deadline tugas pukul 23:59 atau giliran menyapu lab setiap sore. Simpan halaman arsip ini baik-baik supaya kapan pun kita rindu masa SMK, kita punya rumah digital untuk pulang.',
+    memory_highlight: 'Menempel 22 kertas cita-cita di papan tulis kelas',
+    created_at: '2026-11-08T16:45:00+07:00',
+  },
+  {
+    id: 'fw-04',
+    author_name: 'Seluruh Anggota XII PPLG 1',
+    author_role: 'Class of 2026 · 22 Siswa',
+    title: 'Janji Reuni 5 Tahun Lagi',
+    body: 'Ke mana pun langkah kita setelah lulus — kuliah, membangun startup, bekerja di studio gim, atau merantau — jangan lupa asal kita dari bangku Lab RPL 1. Sampai jumpa di reuni akbar dengan cerita sukses masing-masing!',
+    memory_highlight: 'Foto angkatan berjaket XII PPLG 1 — Class of 2026',
+    created_at: '2026-11-12T19:00:00+07:00',
+  },
+];
 
 export const INITIAL_SCHEDULES: ScheduleSlot[] = [
   // Senin (1)

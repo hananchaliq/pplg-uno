@@ -336,6 +336,7 @@ export function validateStudentDreamUpdate(input: {
   dream_reason: string;
   dream_description: string;
   dream_paper_color?: string;
+  capsule_message?: string;
 }): {
   valid: boolean;
   error?: string;
@@ -344,12 +345,16 @@ export function validateStudentDreamUpdate(input: {
     dream_reason: string;
     dream_description: string;
     dream_paper_color: string;
+    capsule_message?: string;
   };
 } {
   const title = input.dream_title.replace(/[<>]/g, '').trim();
   const reason = input.dream_reason.replace(/[<>]/g, '').trim();
   const description = input.dream_description.replace(/[<>]/g, '').trim();
   const color = (input.dream_paper_color || '#DDEBD6').trim();
+  const capsule = input.capsule_message
+    ? input.capsule_message.replace(/[<>]/g, '').trim()
+    : undefined;
 
   if (title.length < 3 || title.length > 120) {
     return { valid: false, error: 'Judul cita-cita wajib 3–120 karakter.' };
@@ -368,6 +373,64 @@ export function validateStudentDreamUpdate(input: {
       dream_reason: reason,
       dream_description: description,
       dream_paper_color: color,
+      ...(capsule ? { capsule_message: capsule } : {}),
     },
   };
+}
+
+export function validateFarewellLetter(input: {
+  author_name: string;
+  author_role: string;
+  title: string;
+  body: string;
+  memory_highlight?: string;
+}): {
+  valid: boolean;
+  error?: string;
+  sanitized?: {
+    author_name: string;
+    author_role: string;
+    title: string;
+    body: string;
+    memory_highlight: string;
+  };
+} {
+  const author_name = input.author_name.replace(/[<>]/g, '').trim();
+  const author_role = input.author_role.replace(/[<>]/g, '').trim() || 'Siswa XII PPLG 1';
+  const title = input.title.replace(/[<>]/g, '').trim();
+  const body = input.body.replace(/[<>]/g, '').trim();
+  const memory_highlight =
+    (input.memory_highlight || 'Kenangan Manis XII PPLG 1').replace(/[<>]/g, '').trim();
+
+  if (author_name.length < 2 || author_name.length > 80) {
+    return { valid: false, error: 'Nama penulis wajib 2–80 karakter.' };
+  }
+  if (title.length < 3 || title.length > 120) {
+    return { valid: false, error: 'Judul surat wajib 3–120 karakter.' };
+  }
+  if (body.length < 10 || body.length > 1000) {
+    return { valid: false, error: 'Isi surat perpisahan wajib 10–1000 karakter.' };
+  }
+
+  return {
+    valid: true,
+    sanitized: {
+      author_name,
+      author_role,
+      title,
+      body,
+      memory_highlight,
+    },
+  };
+}
+
+export function formatBootProgress(pct: number): {
+  formattedPct: string;
+  activeStageIndex: number;
+} {
+  const clamped = Math.max(0, Math.min(100, Math.round(pct)));
+  const formattedPct = `${String(clamped).padStart(2, '0')}%`;
+  const activeStageIndex =
+    clamped < 28 ? 0 : clamped < 58 ? 1 : clamped < 88 ? 2 : 3;
+  return { formattedPct, activeStageIndex };
 }

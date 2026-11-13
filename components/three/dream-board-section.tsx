@@ -22,10 +22,27 @@ import {
   Heart,
   FileText,
   Shuffle,
+  Edit3,
+  RotateCcw,
+  Save,
+  Clock,
 } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface DreamBoardSectionProps {
   students: StudentRecord[];
+  isAdmin?: boolean;
+  onUpdateStudentDream?: (
+    studentId: string,
+    payload: {
+      dream_title: string;
+      dream_reason: string;
+      dream_description: string;
+      dream_paper_color: string;
+      capsule_message?: string;
+    }
+  ) => Promise<void>;
+  onResetStudentDream?: (studentId: string) => Promise<void>;
 }
 
 function createRoundedBoxGeometry(
@@ -58,31 +75,46 @@ function createRoundedBoxGeometry(
 
 function createBoardSurfaceTexture(): THREE.CanvasTexture {
   const canvas = document.createElement('canvas');
-  canvas.width = 512;
-  canvas.height = 288;
+  canvas.width = 1024;
+  canvas.height = 576;
   const ctx = canvas.getContext('2d');
   if (ctx) {
-    // Soft matte cork-glass / whiteboard gradient
-    const grad = ctx.createLinearGradient(0, 0, 512, 288);
-    grad.addColorStop(0, '#F7F8FC');
-    grad.addColorStop(0.5, '#EFF2FA');
-    grad.addColorStop(1, '#E8ECF8');
+    // Authentic Classroom Slate-Green Blackboard / Chalkboard Gradient
+    const grad = ctx.createLinearGradient(0, 0, 1024, 576);
+    grad.addColorStop(0, '#1B2D26');
+    grad.addColorStop(0.5, '#172620');
+    grad.addColorStop(1, '#121E19');
     ctx.fillStyle = grad;
-    ctx.fillRect(0, 0, 512, 288);
+    ctx.fillRect(0, 0, 1024, 576);
 
-    // Subtle studio dot grid
-    ctx.fillStyle = 'rgba(110, 120, 232, 0.09)';
-    for (let x = 16; x < 512; x += 16) {
-      for (let y = 16; y < 288; y += 16) {
-        ctx.fillRect(x, y, 1.5, 1.5);
-      }
+    // Subtle chalk grid & erased chalk dust streaks
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.035)';
+    ctx.lineWidth = 1;
+    for (let x = 48; x < 1024; x += 48) {
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, 576);
+      ctx.stroke();
+    }
+    for (let y = 48; y < 576; y += 48) {
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(1024, y);
+      ctx.stroke();
     }
 
-    // Fine grain noise for matte surface reflection
-    for (let i = 0; i < 1600; i++) {
-      const nx = (i * 97) % 512;
-      const ny = (i * 53) % 288;
-      ctx.fillStyle = i % 2 === 0 ? 'rgba(255,255,255,0.22)' : 'rgba(15,20,40,0.025)';
+    // Chalk header inscription on blackboard: "XII PPLG 1 — CLASS OF 2026"
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.22)';
+    ctx.font = '700 22px "JetBrains Mono", ui-monospace, monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('✦ XII PPLG 1 — CLASS OF 2026 · PAPAN IMPIAN & KAPSUL WAKTU ✦', 512, 34);
+    ctx.textAlign = 'start';
+
+    // Fine chalk grain noise
+    for (let i = 0; i < 2200; i++) {
+      const nx = (i * 193) % 1024;
+      const ny = (i * 109) % 576;
+      ctx.fillStyle = i % 2 === 0 ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.08)';
       ctx.fillRect(nx, ny, 2, 2);
     }
   }
@@ -213,7 +245,12 @@ function deformPaperGeometry(
   geo.computeVertexNormals();
 }
 
-export function DreamBoardSection({ students }: DreamBoardSectionProps) {
+export function DreamBoardSection({
+  students,
+  isAdmin = false,
+  onUpdateStudentDream,
+  onResetStudentDream,
+}: DreamBoardSectionProps) {
   const mountRef = React.useRef<HTMLDivElement | null>(null);
   const poses = React.useMemo(() => computeDreamBoardLayout(students), [students]);
 
@@ -223,6 +260,12 @@ export function DreamBoardSection({ students }: DreamBoardSectionProps) {
     null
   );
   const [zoomColorOverride, setZoomColorOverride] = React.useState<Record<string, string>>({});
+  const [isEditingModal, setIsEditingModal] = React.useState(false);
+  const [editTitle, setEditTitle] = React.useState('');
+  const [editReason, setEditReason] = React.useState('');
+  const [editDesc, setEditDesc] = React.useState('');
+  const [editCapsule, setEditCapsule] = React.useState('');
+  const [editColor, setEditColor] = React.useState<string>(DREAM_PAPER_PALETTE[0].hex);
 
   // Refs synced for the 60fps Three.js loop
   const hoveredIndexRef = React.useRef<number | null>(null);
@@ -336,13 +379,13 @@ export function DreamBoardSection({ students }: DreamBoardSectionProps) {
     const boardGroup = new THREE.Group();
     scene.add(boardGroup);
 
-    // 1. THE CLASSROOM BOARD (Rounded 16:9 Frame + Matte Surface + Bottom Tray)
+    // 1. THE CLASSROOM BLACKBOARD (100% STATIC Wooden Frame + Dark Slate Chalkboard + Ledge)
     const outerFrameGeo = createRoundedBoxGeometry(13.6, 7.6, 0.34, 0.22, isSoftwareGl ? 2 : 4);
     disposableGeometries.push(outerFrameGeo);
     const outerFrameMat = new THREE.MeshStandardMaterial({
-      color: 0xe6dec8, // Warm light ash wood / pastel alloy frame
-      roughness: 0.4,
-      metalness: 0.12,
+      color: 0x7a5230, // Warm teak wood blackboard frame
+      roughness: 0.45,
+      metalness: 0.08,
     });
     disposableMaterials.push(outerFrameMat);
     const outerFrameMesh = new THREE.Mesh(outerFrameGeo, outerFrameMat);
@@ -350,13 +393,13 @@ export function DreamBoardSection({ students }: DreamBoardSectionProps) {
     outerFrameMesh.receiveShadow = true;
     boardGroup.add(outerFrameMesh);
 
-    // Inner Metallic Bevel Trim
+    // Inner Wooden Bevel Trim
     const innerTrimGeo = createRoundedBoxGeometry(13.15, 7.15, 0.36, 0.16, 2);
     disposableGeometries.push(innerTrimGeo);
     const innerTrimMat = new THREE.MeshStandardMaterial({
-      color: 0xd5daf0,
-      roughness: 0.35,
-      metalness: 0.28,
+      color: 0x5c3c22,
+      roughness: 0.42,
+      metalness: 0.1,
     });
     disposableMaterials.push(innerTrimMat);
     const innerTrimMesh = new THREE.Mesh(innerTrimGeo, innerTrimMat);
@@ -676,7 +719,7 @@ export function DreamBoardSection({ students }: DreamBoardSectionProps) {
         }
       }
 
-      renderer.domElement.style.cursor = 'grab';
+      renderer.domElement.style.cursor = 'default';
       if (hoveredIndexRef.current !== null) {
         hoveredIndexRef.current = null;
         setHoveredIndex(null);
@@ -762,11 +805,11 @@ export function DreamBoardSection({ students }: DreamBoardSectionProps) {
       const activeZoom = zoomedIndexRef.current;
       const tilt = pointerTiltRef.current;
 
-      // Subtle board parallax when in Idle/Hover state
-      const targetBoardRotY = activeZoom !== null ? -0.04 : tilt.x * 0.045;
-      const targetBoardRotX = activeZoom !== null ? 0.01 : -tilt.y * 0.035;
-      boardGroup.rotation.y += (targetBoardRotY - boardGroup.rotation.y) * lerpFactor;
-      boardGroup.rotation.x += (targetBoardRotX - boardGroup.rotation.x) * lerpFactor;
+      // STRICT STATIC BLACKBOARD LOCK:
+      // The 3D Blackboard mesh (frame, chalk, eraser, chalkboard surface) is 100% STATIC
+      // and never rotates or shifts on mousemove or drag.
+      boardGroup.rotation.set(0, 0, 0);
+      boardGroup.position.set(0, 0, 0);
 
       for (let i = 0; i < noteInstances.length; i++) {
         const inst = noteInstances[i];
@@ -1041,7 +1084,7 @@ export function DreamBoardSection({ students }: DreamBoardSectionProps) {
                 aria-label={`Detail cita-cita ${zoomedStudent.name}`}
                 className="pointer-events-auto glass-panel max-h-[94%] w-full max-w-[490px] overflow-y-auto border border-white/85 bg-white/90 p-4 shadow-2xl backdrop-blur-xl sm:p-5 dark:border-white/20 dark:bg-[#101528]/92"
               >
-                {/* 1. Identitas Siswa ("Oleh Siapa") */}
+                {/* 1. Identitas Siswa ("Oleh Siapa" + Nomor Absen & NIS) */}
                 <div className="flex items-start justify-between gap-3 border-b border-black/10 pb-3 dark:border-white/10">
                   <div className="flex items-center gap-3">
                     <Image
@@ -1055,7 +1098,7 @@ export function DreamBoardSection({ students }: DreamBoardSectionProps) {
                     <div>
                       <div className="flex flex-wrap items-center gap-1.5">
                         <span className="font-mono text-[11px] font-semibold text-[#6E78E8] dark:text-[#A8B0FF]">
-                          XII PPLG 1 · No. {String(zoomedStudent.roll_no).padStart(2, '0')}
+                          Absen #{String(zoomedStudent.roll_no).padStart(2, '0')} · NIS {zoomedStudent.nis || `202310${String(zoomedStudent.roll_no).padStart(2, '0')}`}
                         </span>
                         <span
                           style={{
@@ -1071,85 +1114,227 @@ export function DreamBoardSection({ students }: DreamBoardSectionProps) {
                         {zoomedStudent.name}
                       </h3>
                       <p className="text-[11px] font-medium text-[#5B6073] dark:text-[#A4AAC0]">
-                        {zoomedStudent.role} · Oleh {zoomedStudent.name}
+                        {zoomedStudent.role} · XII PPLG 1 — Class of 2026
                       </p>
                     </div>
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={() => setZoomedIndex(null)}
-                    aria-label="Tutup fokus kertas cita-cita"
-                    className="inline-flex h-8 items-center gap-1 rounded-full border border-black/15 bg-white/80 px-3 font-mono text-xs font-semibold text-[#0B0D14] transition hover:bg-white dark:border-white/20 dark:bg-white/10 dark:text-white"
-                  >
-                    <X className="size-3.5" />
-                    <span>Tutup (Esc)</span>
-                  </button>
-                </div>
-
-                {/* 2. Cita-Cita Utama ("Impian / Target") */}
-                <div className="mt-3 rounded-2xl border border-black/10 bg-white/75 p-3.5 dark:border-white/10 dark:bg-white/5">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="inline-flex items-center gap-1.5 font-mono text-[10px] font-semibold uppercase tracking-wider text-[#6E78E8] dark:text-[#A8B0FF]">
-                      <Compass className="size-3.5" strokeWidth={1.5} />
-                      <span>Impian / Target Karier Utama</span>
-                    </span>
+                  <div className="flex items-center gap-1.5">
+                    {isAdmin && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (!isEditingModal) {
+                            setEditTitle(zoomedStudent.dream_title);
+                            setEditReason(zoomedStudent.dream_reason);
+                            setEditDesc(zoomedStudent.dream_description);
+                            setEditCapsule(
+                              zoomedStudent.capsule_message ||
+                                `Kapsul Waktu 2026 — Sampai bertemu lagi sebagai ${zoomedStudent.dream_title}!`
+                            );
+                            setEditColor(
+                              zoomColorOverride[zoomedStudent.id] ||
+                                zoomedStudent.dream_paper_color ||
+                                zoomedPose.paperColorHex
+                            );
+                          }
+                          setIsEditingModal((v) => !v);
+                        }}
+                        className="inline-flex h-8 items-center gap-1 rounded-full bg-[#6E78E8] px-3 font-mono text-xs font-semibold text-white transition hover:opacity-90"
+                      >
+                        <Edit3 className="size-3.5" />
+                        <span>{isEditingModal ? 'Batal' : 'Edit Admin'}</span>
+                      </button>
+                    )}
                     <button
                       type="button"
-                      onClick={handleCycleZoomPaperColor}
-                      title="Ganti warna pastel kertas 3D"
-                      className="inline-flex items-center gap-1 rounded-full border border-black/10 bg-white/80 px-2.5 py-0.5 font-mono text-[10px] font-medium text-[#5B6073] transition hover:text-[#0B0D14] dark:border-white/15 dark:bg-white/10 dark:text-[#A4AAC0]"
+                      onClick={() => {
+                        setIsEditingModal(false);
+                        setZoomedIndex(null);
+                      }}
+                      aria-label="Tutup fokus kertas cita-cita"
+                      className="inline-flex h-8 items-center gap-1 rounded-full border border-black/15 bg-white/80 px-3 font-mono text-xs font-semibold text-[#0B0D14] transition hover:bg-white dark:border-white/20 dark:bg-white/10 dark:text-white"
                     >
-                      <Shuffle className="size-3" />
-                      <span>Warna Kertas</span>
+                      <X className="size-3.5" />
+                      <span>Tutup (Esc)</span>
                     </button>
                   </div>
-                  <h4 className="mt-1 text-lg font-extrabold tracking-tight text-[#0B0D14] dark:text-white">
-                    {zoomedStudent.dream_title}
-                  </h4>
-                  <div className="mt-1.5 flex flex-wrap gap-1.5">
-                    {zoomedStudent.tags.map((tag) => (
-                      <span
-                        key={tag}
-                        className="rounded-full bg-[#6E78E8]/12 px-2 py-0.5 font-mono text-[10px] font-medium text-[#4750C7] dark:bg-[#6E78E8]/25 dark:text-[#C5CAFF]"
-                      >
-                        #{tag}
+                </div>
+
+                {isAdmin && isEditingModal ? (
+                  <form
+                    onSubmit={async (e) => {
+                      e.preventDefault();
+                      if (!onUpdateStudentDream) return;
+                      await onUpdateStudentDream(zoomedStudent.id, {
+                        dream_title: editTitle,
+                        dream_reason: editReason,
+                        dream_description: editDesc,
+                        dream_paper_color: editColor,
+                        capsule_message: editCapsule,
+                      });
+                      updatePaperColorRef.current(zoomedStudent.id, editColor);
+                      setIsEditingModal(false);
+                      toast.success(`Catatan mimpi ${zoomedStudent.name} berhasil disimpan!`);
+                    }}
+                    className="mt-3 space-y-2.5 rounded-2xl border border-[#6E78E8]/35 bg-white/85 p-3.5 dark:bg-[#151A30]/90"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="font-mono text-[10px] font-bold uppercase text-[#6E78E8]">
+                        Mode Admin · Edit Catatan Mimpi &amp; Kapsul Waktu
                       </span>
-                    ))}
-                  </div>
-                </div>
+                      {onResetStudentDream && (
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            await onResetStudentDream(zoomedStudent.id);
+                            setIsEditingModal(false);
+                            toast.info(`Catatan mimpi ${zoomedStudent.name} direset ke default.`);
+                          }}
+                          className="inline-flex items-center gap-1 font-mono text-[10px] font-semibold text-[#E11D48] hover:underline"
+                        >
+                          <RotateCcw className="size-3" />
+                          <span>Reset / Hapus Editan</span>
+                        </button>
+                      )}
+                    </div>
 
-                {/* 3. Alasan Memilih ("Kenapa Milih Itu?") */}
-                <div className="mt-2.5 rounded-2xl border border-black/10 bg-white/70 p-3.5 dark:border-white/10 dark:bg-white/5">
-                  <span className="inline-flex items-center gap-1.5 font-mono text-[10px] font-semibold uppercase tracking-wider text-[#E0709A]">
-                    <Heart className="size-3.5" strokeWidth={1.5} />
-                    <span>Kenapa Milih Cita-Cita Itu?</span>
-                  </span>
-                  <p className="mt-1 text-xs leading-relaxed text-[#0B0D14] dark:text-white/90">
-                    &ldquo;{zoomedStudent.dream_reason}&rdquo;
-                  </p>
-                </div>
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-12">
+                      <div className="sm:col-span-8">
+                        <label className="block font-mono text-[10px] uppercase text-[#5B6073] dark:text-[#A4AAC0]">
+                          Cita-Cita Pasca Lulus
+                        </label>
+                        <input
+                          type="text"
+                          value={editTitle}
+                          onChange={(e) => setEditTitle(e.target.value)}
+                          className="mt-1 h-8.5 w-full rounded-xl border border-black/15 bg-white px-2.5 text-xs font-semibold text-[#0B0D14] dark:border-white/20 dark:bg-white/10 dark:text-white"
+                        />
+                      </div>
+                      <div className="sm:col-span-4">
+                        <label className="block font-mono text-[10px] uppercase text-[#5B6073] dark:text-[#A4AAC0]">
+                          Warna Kertas
+                        </label>
+                        <select
+                          value={editColor}
+                          onChange={(e) => setEditColor(e.target.value)}
+                          className="mt-1 h-8.5 w-full rounded-xl border border-black/15 bg-white px-2 text-xs font-semibold text-[#0B0D14] dark:border-white/20 dark:bg-[#101528] dark:text-white"
+                        >
+                          {DREAM_PAPER_PALETTE.map((p) => (
+                            <option key={p.hex} value={p.hex}>
+                              {p.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
 
-                {/* 4. Deskripsi & Rencana ("Detail Dream Note") */}
-                <div className="mt-2.5 rounded-2xl border border-black/10 bg-white/70 p-3.5 dark:border-white/10 dark:bg-white/5">
-                  <span className="inline-flex items-center gap-1.5 font-mono text-[10px] font-semibold uppercase tracking-wider text-[#3FB8A5]">
-                    <FileText className="size-3.5" strokeWidth={1.5} />
-                    <span>Detail Dream Note &amp; Rencana Langkah</span>
-                  </span>
-                  <p className="mt-1 text-xs leading-relaxed text-[#5B6073] dark:text-[#A4AAC0]">
-                    {zoomedStudent.dream_description}
-                  </p>
-                </div>
+                    <div>
+                      <label className="block font-mono text-[10px] uppercase text-[#5B6073] dark:text-[#A4AAC0]">
+                        Alasan &amp; Harapan Pasca-Lulus
+                      </label>
+                      <textarea
+                        rows={2}
+                        value={editReason}
+                        onChange={(e) => setEditReason(e.target.value)}
+                        className="mt-1 w-full rounded-xl border border-black/15 bg-white p-2 text-xs text-[#0B0D14] dark:border-white/20 dark:bg-white/10 dark:text-white"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block font-mono text-[10px] uppercase text-[#5B6073] dark:text-[#A4AAC0]">
+                        Rencana Langkah &amp; Pesan Kapsul Waktu 2026
+                      </label>
+                      <textarea
+                        rows={2}
+                        value={editCapsule}
+                        onChange={(e) => setEditCapsule(e.target.value)}
+                        className="mt-1 w-full rounded-xl border border-black/15 bg-white p-2 text-xs text-[#0B0D14] dark:border-white/20 dark:bg-white/10 dark:text-white"
+                      />
+                    </div>
+
+                    <button
+                      type="submit"
+                      className="inline-flex h-9 w-full items-center justify-center gap-1.5 rounded-full bg-[#0B0D14] px-4 text-xs font-semibold text-white dark:bg-white dark:text-[#0B0D14]"
+                    >
+                      <Save className="size-3.5" />
+                      <span>Simpan Perubahan Real-Time</span>
+                    </button>
+                  </form>
+                ) : (
+                  <>
+                    {/* 2. Cita-Cita Utama ("Impian / Target") */}
+                    <div className="mt-3 rounded-2xl border border-black/10 bg-white/75 p-3.5 dark:border-white/10 dark:bg-white/5">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="inline-flex items-center gap-1.5 font-mono text-[10px] font-semibold uppercase tracking-wider text-[#6E78E8] dark:text-[#A8B0FF]">
+                          <Compass className="size-3.5" strokeWidth={1.5} />
+                          <span>Impian / Harapan Pasca-Lulus</span>
+                        </span>
+                        <button
+                          type="button"
+                          onClick={handleCycleZoomPaperColor}
+                          title="Ganti warna pastel kertas 3D"
+                          className="inline-flex items-center gap-1 rounded-full border border-black/10 bg-white/80 px-2.5 py-0.5 font-mono text-[10px] font-medium text-[#5B6073] transition hover:text-[#0B0D14] dark:border-white/15 dark:bg-white/10 dark:text-[#A4AAC0]"
+                        >
+                          <Shuffle className="size-3" />
+                          <span>Warna Kertas</span>
+                        </button>
+                      </div>
+                      <h4 className="mt-1 text-lg font-extrabold tracking-tight text-[#0B0D14] dark:text-white">
+                        {zoomedStudent.dream_title}
+                      </h4>
+                      <div className="mt-1.5 flex flex-wrap gap-1.5">
+                        {zoomedStudent.tags.map((tag) => (
+                          <span
+                            key={tag}
+                            className="rounded-full bg-[#6E78E8]/12 px-2 py-0.5 font-mono text-[10px] font-medium text-[#4750C7] dark:bg-[#6E78E8]/25 dark:text-[#C5CAFF]"
+                          >
+                            #{tag}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* 3. Alasan Memilih ("Kenapa Milih Itu?") */}
+                    <div className="mt-2.5 rounded-2xl border border-black/10 bg-white/70 p-3.5 dark:border-white/10 dark:bg-white/5">
+                      <span className="inline-flex items-center gap-1.5 font-mono text-[10px] font-semibold uppercase tracking-wider text-[#E0709A]">
+                        <Heart className="size-3.5" strokeWidth={1.5} />
+                        <span>Kenapa Milih Cita-Cita Itu?</span>
+                      </span>
+                      <p className="mt-1 text-xs leading-relaxed text-[#0B0D14] dark:text-white/90">
+                        &ldquo;{zoomedStudent.dream_reason}&rdquo;
+                      </p>
+                    </div>
+
+                    {/* 4. Deskripsi & Pesan Kapsul Waktu ("Detail Dream Note & Kapsul Waktu") */}
+                    <div className="mt-2.5 rounded-2xl border border-black/10 bg-white/70 p-3.5 dark:border-white/10 dark:bg-white/5">
+                      <span className="inline-flex items-center gap-1.5 font-mono text-[10px] font-semibold uppercase tracking-wider text-[#3FB8A5]">
+                        <FileText className="size-3.5" strokeWidth={1.5} />
+                        <span>Rencana Langkah &amp; Pesan Kapsul Waktu 2026</span>
+                      </span>
+                      <p className="mt-1 text-xs leading-relaxed text-[#5B6073] dark:text-[#A4AAC0]">
+                        {zoomedStudent.dream_description}
+                      </p>
+                      {zoomedStudent.capsule_message && (
+                        <p className="mt-2 flex items-start gap-1.5 border-t border-black/10 pt-2 font-mono text-[11px] text-[#0B0D14] dark:border-white/10 dark:text-white/90">
+                          <Clock className="mt-0.5 size-3.5 shrink-0 text-[#F0A04B]" />
+                          <span>{zoomedStudent.capsule_message}</span>
+                        </p>
+                      )}
+                    </div>
+                  </>
+                )}
 
                 {/* 5. Kontrol Interaksi (Sebelumnya / Selanjutnya / Tutup) */}
                 <div className="mt-3.5 flex items-center justify-between gap-2 border-t border-black/10 pt-3 dark:border-white/10">
                   <button
                     type="button"
-                    onClick={() =>
+                    onClick={() => {
+                      setIsEditingModal(false);
                       setZoomedIndex((prev) =>
                         prev === null ? 0 : (prev - 1 + students.length) % students.length
-                      )
-                    }
+                      );
+                    }}
                     className="inline-flex h-8.5 items-center gap-1.5 rounded-full border border-black/15 bg-white/85 px-3.5 text-xs font-semibold text-[#0B0D14] transition hover:bg-white dark:border-white/20 dark:bg-white/10 dark:text-white"
                   >
                     <ChevronLeft className="size-3.5" />
@@ -1162,11 +1347,12 @@ export function DreamBoardSection({ students }: DreamBoardSectionProps) {
 
                   <button
                     type="button"
-                    onClick={() =>
+                    onClick={() => {
+                      setIsEditingModal(false);
                       setZoomedIndex((prev) =>
                         prev === null ? 0 : (prev + 1) % students.length
-                      )
-                    }
+                      );
+                    }}
                     className="inline-flex h-8.5 items-center gap-1.5 rounded-full bg-[#0B0D14] px-3.5 text-xs font-semibold text-white transition hover:opacity-90 dark:bg-white dark:text-[#0B0D14]"
                   >
                     <span>Selanjutnya</span>
@@ -1193,7 +1379,7 @@ export function DreamBoardSection({ students }: DreamBoardSectionProps) {
             </span>
           </div>
 
-          <div className="mt-2.5 grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+          <div className="mt-2.5 grid grid-cols-2 gap-2.5 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
             {students.map((st, idx) => {
               const pose = poses[idx];
               const isZoomed = zoomedIndex === idx;
@@ -1222,7 +1408,7 @@ export function DreamBoardSection({ students }: DreamBoardSectionProps) {
                   style={{
                     borderLeftColor: pose?.pinColorHex ?? '#6E78E8',
                   }}
-                  className={`flex items-center justify-between gap-2 rounded-xl border border-black/10 border-l-4 px-3 py-2 text-left transition ${
+                  className={`flex min-w-0 items-center justify-between gap-2 rounded-xl border border-black/10 border-l-4 px-2.5 py-2 text-left transition ${
                     isZoomed
                       ? 'bg-[#0B0D14] text-white shadow-md dark:bg-white dark:text-[#0B0D14]'
                       : isHovered
@@ -1231,7 +1417,7 @@ export function DreamBoardSection({ students }: DreamBoardSectionProps) {
                   }`}
                 >
                   <div className="min-w-0">
-                    <p className="font-mono text-[10px] opacity-75">
+                    <p className="truncate font-mono text-[10px] opacity-75">
                       #{String(st.roll_no).padStart(2, '0')} · {st.name}
                     </p>
                     <p className="truncate text-xs font-bold">{st.dream_title}</p>
@@ -1246,3 +1432,5 @@ export function DreamBoardSection({ students }: DreamBoardSectionProps) {
     </section>
   );
 }
+
+export const ClassDreamBoard3D = DreamBoardSection;

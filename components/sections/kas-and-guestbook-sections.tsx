@@ -3,6 +3,7 @@
 import * as React from 'react';
 import { KasTransaction, GuestbookEntry } from '@/lib/class-data';
 import { summarizeKas, validateGuestbookSubmission } from '@/lib/class-logic';
+import { ResponsiveDataGrid } from '@/components/ui/responsive-data-grid';
 import { Wallet, ArrowUpRight, ArrowDownRight, MessageSquarePlus, Send, ShieldCheck } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -135,27 +136,42 @@ export function KasKelasSection({ transactions }: { transactions: KasTransaction
             </div>
           </div>
 
-          {/* Transparent Transaction History Table (6 cols) */}
-          <div className="glass-card p-6 lg:col-span-6">
-            <h3 className="text-lg font-bold">Riwayat Mutasi Transparan</h3>
-            <div className="mt-4 max-h-[310px] overflow-y-auto pr-1">
-              <table className="w-full text-left text-xs">
-                <thead>
-                  <tr className="border-b border-black/10 font-mono text-[11px] uppercase text-[#5B6073] dark:border-white/10 dark:text-[#A4AAC0]">
-                    <th className="pb-2.5">Tanggal</th>
-                    <th className="pb-2.5">Keterangan</th>
-                    <th className="pb-2.5 text-right">Nominal</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-black/5 dark:divide-white/5">
-                  {transactions.map((tx) => (
-                    <tr key={tx.id}>
-                      <td className="py-2.5 font-mono text-[11px] tabular-nums text-[#5B6073] dark:text-[#A4AAC0]">
+          {/* Transparent Transaction History (2-Column Card Grid on Mobile < md, Table on Desktop md+) */}
+          <div className="glass-card p-5 sm:p-6 lg:col-span-6">
+            <div className="flex items-center justify-between gap-2">
+              <h3 className="text-lg font-bold">Riwayat Mutasi Transparan</h3>
+              <span className="font-mono text-[10px] uppercase text-[#5B6073] md:hidden dark:text-[#A4AAC0]">
+                2-Kolom Card Mobile
+              </span>
+            </div>
+            <div className="mt-4 max-h-[340px] overflow-y-auto overflow-x-hidden pr-1">
+              <ResponsiveDataGrid
+                items={transactions}
+                getRowKey={(tx) => tx.id}
+                ariaLabel="Riwayat Mutasi Kas Kelas XII PPLG 1"
+                testId="kas-responsive-grid"
+                columns={[
+                  {
+                    key: 'occurred_on',
+                    header: 'Tanggal',
+                    render: (tx) => (
+                      <span className="font-mono text-[11px] tabular-nums text-[#5B6073] dark:text-[#A4AAC0]">
                         {tx.occurred_on}
-                      </td>
-                      <td className="py-2.5 pr-2 font-medium">{tx.note}</td>
-                      <td
-                        className={`py-2.5 text-right font-mono font-semibold tabular-nums ${
+                      </span>
+                    ),
+                  },
+                  {
+                    key: 'note',
+                    header: 'Keterangan',
+                    render: (tx) => <span className="font-medium">{tx.note}</span>,
+                  },
+                  {
+                    key: 'amount',
+                    header: 'Nominal',
+                    align: 'right',
+                    render: (tx) => (
+                      <span
+                        className={`font-mono font-semibold tabular-nums ${
                           tx.type === 'masuk'
                             ? 'text-[#166534] dark:text-[#54CEBA]'
                             : 'text-[#9F1239] dark:text-[#EC87AE]'
@@ -163,11 +179,42 @@ export function KasKelasSection({ transactions }: { transactions: KasTransaction
                       >
                         {tx.type === 'masuk' ? '+' : '-'}
                         {formatRupiah(tx.amount)}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                      </span>
+                    ),
+                  },
+                ]}
+                renderMobileCard={(tx) => (
+                  <div className="flex h-full flex-col justify-between gap-1.5">
+                    <div>
+                      <div className="flex items-center justify-between gap-1 font-mono text-[10px] text-[#5B6073] dark:text-[#A4AAC0]">
+                        <span className="tabular-nums">{tx.occurred_on}</span>
+                        <span
+                          className={`rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase ${
+                            tx.type === 'masuk'
+                              ? 'bg-[#3FB8A5]/15 text-[#166534] dark:text-[#54CEBA]'
+                              : 'bg-[#E0709A]/15 text-[#9F1239] dark:text-[#EC87AE]'
+                          }`}
+                        >
+                          {tx.type}
+                        </span>
+                      </div>
+                      <p className="mt-1 line-clamp-2 text-xs font-semibold leading-snug">
+                        {tx.note}
+                      </p>
+                    </div>
+                    <p
+                      className={`font-mono text-xs font-bold tabular-nums ${
+                        tx.type === 'masuk'
+                          ? 'text-[#166534] dark:text-[#54CEBA]'
+                          : 'text-[#9F1239] dark:text-[#EC87AE]'
+                      }`}
+                    >
+                      {tx.type === 'masuk' ? '+' : '-'}
+                      {formatRupiah(tx.amount)}
+                    </p>
+                  </div>
+                )}
+              />
             </div>
           </div>
         </div>

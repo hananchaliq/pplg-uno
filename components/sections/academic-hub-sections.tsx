@@ -11,8 +11,11 @@ import {
   AssignmentItem,
   ResourceItem,
   GalleryPhoto,
+  FarewellLetter,
 } from '@/lib/class-data';
 import { getActiveScheduleWIB } from '@/lib/class-logic';
+import { ResponsiveDataGrid } from '@/components/ui/responsive-data-grid';
+import { GraduationCapsuleShowcase3D } from '@/components/three/graduation-capsule-models';
 import {
   Clock,
   Calendar,
@@ -25,6 +28,8 @@ import {
   Maximize2,
   X,
   RotateCw,
+  Trash2,
+  HeartHandshake,
 } from 'lucide-react';
 
 const WEEKDAY_NAMES: Array<{ day: 1 | 2 | 3 | 4 | 5 | 6; label: string }> = [
@@ -129,6 +134,9 @@ export function AboutClassSection({ info }: { info: ClassInfo }) {
             </article>
           ))}
         </div>
+
+        {/* Additive 3D Graduation Capsule Artifacts Showcase */}
+        <GraduationCapsuleShowcase3D />
       </div>
     </section>
   );
@@ -202,20 +210,24 @@ export function ScheduleAndPiketSection({
                   </div>
 
                   {!isFlipped ? (
-                    <ul className="mt-4 space-y-3">
+                    <ul className="mt-4 grid grid-cols-2 gap-2.5 sm:grid-cols-1">
                       {daySchedules.map((slot) => (
                         <li
                           key={slot.id}
-                          className="rounded-xl border border-black/5 bg-white/65 p-3 dark:border-white/10 dark:bg-white/5"
+                          className="min-w-0 rounded-xl border border-black/5 bg-white/65 p-2.5 sm:p-3 dark:border-white/10 dark:bg-white/5"
                         >
-                          <div className="flex items-center justify-between font-mono text-[11px] text-[#5B6073] dark:text-[#A4AAC0]">
+                          <div className="flex flex-wrap items-center justify-between gap-1 font-mono text-[10px] text-[#5B6073] sm:text-[11px] dark:text-[#A4AAC0]">
                             <span className="tabular-nums">
-                              {slot.start_time} – {slot.end_time} WIB
+                              {slot.start_time}–{slot.end_time}
                             </span>
-                            <span>{slot.room}</span>
+                            <span className="truncate">{slot.room}</span>
                           </div>
-                          <p className="mt-1 text-sm font-semibold">{slot.subject}</p>
-                          <p className="text-xs text-[#5B6073] dark:text-[#A4AAC0]">{slot.teacher}</p>
+                          <p className="mt-1 line-clamp-2 text-xs font-semibold sm:text-sm">
+                            {slot.subject}
+                          </p>
+                          <p className="truncate text-[11px] text-[#5B6073] dark:text-[#A4AAC0]">
+                            {slot.teacher}
+                          </p>
                         </li>
                       ))}
                     </ul>
@@ -224,16 +236,18 @@ export function ScheduleAndPiketSection({
                       <p className="font-mono text-xs uppercase tracking-wider text-[#5B6073] dark:text-[#A4AAC0]">
                         Petugas Piket Hari {label}:
                       </p>
-                      <ul className="mt-3 space-y-2">
+                      <ul className="mt-3 grid grid-cols-2 gap-2.5">
                         {(dayPiket?.studentRollNos ?? []).map((rollNo) => {
                           const st = students.find((s) => s.roll_no === rollNo);
                           return (
                             <li
                               key={rollNo}
-                              className="flex items-center justify-between rounded-xl border border-black/5 bg-white/70 px-3.5 py-2 text-xs font-medium dark:border-white/10 dark:bg-white/10"
+                              className="flex min-w-0 flex-col justify-between rounded-xl border border-black/5 bg-white/70 px-3 py-2 text-xs font-medium dark:border-white/10 dark:bg-white/10"
                             >
-                              <span>{st ? st.name : `Siswa ${String(rollNo).padStart(2, '0')}`}</span>
-                              <span className="font-mono text-[11px] text-[#5B6073] dark:text-[#A4AAC0]">
+                              <span className="truncate font-bold">
+                                {st ? st.name : `Siswa ${String(rollNo).padStart(2, '0')}`}
+                              </span>
+                              <span className="font-mono text-[10px] text-[#5B6073] dark:text-[#A4AAC0]">
                                 Absen #{String(rollNo).padStart(2, '0')}
                               </span>
                             </li>
@@ -241,7 +255,7 @@ export function ScheduleAndPiketSection({
                         })}
                       </ul>
                       <p className="mt-3 text-[11px] text-[#5B6073] dark:text-[#A4AAC0]">
-                        Tugas: Merapikan kursi lab, mematikan proyektor, dan menyiram tanaman teras kelas.
+                        Tugas: Merapikan kursi lab, mematikan proyektor, dan membersihkan papan tulis.
                       </p>
                     </div>
                   )}
@@ -249,6 +263,86 @@ export function ScheduleAndPiketSection({
               </div>
             );
           })}
+        </div>
+
+        {/* Master Structured Schedule Overview using ResponsiveDataGrid (2-Column Card Grid on Mobile < md, Table on Desktop md+) */}
+        <div className="mt-8 border-t border-black/10 pt-6 dark:border-white/10">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <h3 className="text-sm font-bold">
+              Rekap Terstruktur Jadwal Mapel &amp; Ruang Praktikum (Senin – Sabtu)
+            </h3>
+            <span className="font-mono text-[11px] text-[#5B6073] dark:text-[#A4AAC0]">
+              Otomatis 2-Kolom Card di Mobile · Tabel di Desktop
+            </span>
+          </div>
+          <ResponsiveDataGrid
+            items={schedules}
+            getRowKey={(s) => s.id}
+            ariaLabel="Tabel Rekap Jadwal Mata Pelajaran XII PPLG 1"
+            testId="schedule-responsive-grid"
+            columns={[
+              {
+                key: 'day',
+                header: 'Hari & Jam',
+                render: (s) => {
+                  const dayLabel =
+                    WEEKDAY_NAMES.find((w) => w.day === s.weekday)?.label ?? `Hari ${s.weekday}`;
+                  return (
+                    <span className="font-mono text-[11px] font-semibold tabular-nums">
+                      {dayLabel} · {s.start_time}–{s.end_time}
+                    </span>
+                  );
+                },
+              },
+              {
+                key: 'subject',
+                header: 'Mata Pelajaran',
+                render: (s) => <span className="font-semibold">{s.subject}</span>,
+              },
+              {
+                key: 'teacher',
+                header: 'Pengajar',
+                render: (s) => (
+                  <span className="text-[#5B6073] dark:text-[#A4AAC0]">{s.teacher}</span>
+                ),
+              },
+              {
+                key: 'room',
+                header: 'Ruang Lab',
+                align: 'right',
+                render: (s) => (
+                  <span className="rounded-full bg-[#6E78E8]/12 px-2.5 py-0.5 font-mono text-[11px] font-medium text-[#4750C7] dark:bg-[#6E78E8]/25 dark:text-[#C5CAFF]">
+                    {s.room}
+                  </span>
+                ),
+              },
+            ]}
+            renderMobileCard={(s) => {
+              const dayLabel =
+                WEEKDAY_NAMES.find((w) => w.day === s.weekday)?.label ?? `Hari ${s.weekday}`;
+              return (
+                <div className="flex h-full flex-col justify-between gap-1.5">
+                  <div>
+                    <div className="flex items-center justify-between gap-1 font-mono text-[10px] text-[#6E78E8]">
+                      <span className="font-bold uppercase">{dayLabel}</span>
+                      <span className="tabular-nums">
+                        {s.start_time}–{s.end_time}
+                      </span>
+                    </div>
+                    <p className="mt-1 line-clamp-2 text-xs font-bold leading-snug">
+                      {s.subject}
+                    </p>
+                  </div>
+                  <div className="border-t border-black/5 pt-1.5 text-[10px] text-[#5B6073] dark:border-white/10 dark:text-[#A4AAC0]">
+                    <p className="truncate">{s.teacher}</p>
+                    <p className="font-mono font-semibold text-[#0B0D14] dark:text-white">
+                      {s.room}
+                    </p>
+                  </div>
+                </div>
+              );
+            }}
+          />
         </div>
       </div>
     </section>
@@ -395,9 +489,13 @@ export function AnnouncementsAndEventsSection({
 export function AssignmentsAndResourcesSection({
   assignments,
   resources,
+  isAdmin = false,
+  onDeleteAssignment,
 }: {
   assignments: AssignmentItem[];
   resources: ResourceItem[];
+  isAdmin?: boolean;
+  onDeleteAssignment?: (id: string) => void;
 }) {
   const [resourceFilter, setResourceFilter] = React.useState<string>('Semua');
 
@@ -413,54 +511,63 @@ export function AssignmentsAndResourcesSection({
       className="mx-auto max-w-[1320px] px-4 py-10 sm:px-6 lg:px-8"
     >
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
-        {/* Assignments & Deadlines (6 cols) */}
+        {/* Assignments & Deadlines (6 cols — 2-Column Card Grid on Mobile < md) */}
         <div className="glass-panel p-6 sm:p-8 lg:col-span-6">
           <p className="font-mono text-xs uppercase tracking-[0.22em] text-[#5B6073] dark:text-[#A4AAC0]">
             08 · Antrean Tugas Produktif
           </p>
           <h2 id="heading-tugas" className="mt-1.5 text-2xl font-bold tracking-tight">
-            Tugas & Deadline Kelas
+            Tugas &amp; Proyek Kelas
           </h2>
 
-          <div className="mt-6 space-y-4">
+          <div className="mt-6 grid grid-cols-2 gap-2.5 md:grid-cols-1 md:gap-4">
             {assignments.map((asg) => (
-              <article key={asg.id} className="glass-card tint-peach p-5">
-                <div className="flex flex-wrap items-center justify-between gap-2 font-mono text-xs text-[#5B6073] dark:text-[#A4AAC0]">
-                  <span>{asg.subject}</span>
-                  <span className="font-semibold tabular-nums text-[#0B0D14] dark:text-white">
-                    Tenggat:{' '}
-                    {new Date(asg.deadline).toLocaleDateString('id-ID', {
-                      day: 'numeric',
-                      month: 'short',
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    })}
-                  </span>
+              <article key={asg.id} className="glass-card tint-peach flex min-w-0 flex-col justify-between p-3.5 sm:p-5">
+                <div>
+                  <div className="flex flex-wrap items-center justify-between gap-1.5 font-mono text-[10px] text-[#5B6073] sm:text-xs dark:text-[#A4AAC0]">
+                    <span className="truncate font-semibold">{asg.subject}</span>
+                    <span className="font-semibold tabular-nums text-[#0B0D14] dark:text-white">
+                      {new Date(asg.deadline).toLocaleDateString('id-ID', {
+                        day: 'numeric',
+                        month: 'short',
+                      })}
+                    </span>
+                  </div>
+                  <h3 className="mt-1.5 line-clamp-2 text-xs font-bold sm:text-base">{asg.title}</h3>
+                  <p className="mt-1 line-clamp-3 text-[11px] leading-relaxed text-[#5B6073] sm:text-xs dark:text-[#A4AAC0]">
+                    {asg.description}
+                  </p>
                 </div>
-                <h3 className="mt-1.5 text-base font-bold">{asg.title}</h3>
-                <p className="mt-1 text-xs leading-relaxed text-[#5B6073] dark:text-[#A4AAC0]">
-                  {asg.description}
-                </p>
-                <div className="mt-3">
+                <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
                   <a
                     href={asg.link}
-                    className="inline-flex items-center gap-1.5 font-mono text-xs font-semibold text-[#6E78E8] hover:underline"
+                    className="inline-flex items-center gap-1 font-mono text-[11px] font-semibold text-[#6E78E8] hover:underline sm:text-xs"
                   >
-                    <FolderGit2 className="size-3.5" />
-                    Buka Instruksi / Repositori
+                    <FolderGit2 className="size-3.5 shrink-0" />
+                    <span className="truncate">Instruksi</span>
                   </a>
+                  {isAdmin && onDeleteAssignment && (
+                    <button
+                      type="button"
+                      onClick={() => onDeleteAssignment(asg.id)}
+                      className="inline-flex items-center gap-1 font-mono text-[10px] font-semibold text-[#E11D48] hover:underline"
+                    >
+                      <Trash2 className="size-3" />
+                      <span>Hapus</span>
+                    </button>
+                  )}
                 </div>
               </article>
             ))}
           </div>
         </div>
 
-        {/* Resource Hub (6 cols) */}
+        {/* Resource Hub (6 cols — 2-Column Card Grid on Mobile & Desktop) */}
         <div className="glass-panel p-6 sm:p-8 lg:col-span-6">
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div>
               <p className="font-mono text-xs uppercase tracking-[0.22em] text-[#5B6073] dark:text-[#A4AAC0]">
-                09 · Gudang Modul & Referensi
+                09 · Gudang Modul &amp; Referensi
               </p>
               <h2 className="mt-1.5 text-2xl font-bold tracking-tight">
                 Resource Hub PPLG
@@ -485,26 +592,26 @@ export function AssignmentsAndResourcesSection({
             </div>
           </div>
 
-          <div className="mt-6 grid grid-cols-1 gap-3.5 sm:grid-cols-2">
+          <div className="mt-6 grid grid-cols-2 gap-2.5 sm:gap-3.5">
             {filteredResources.map((res) => (
               <a
                 key={res.id}
                 href={res.url}
-                className="glass-card tint-sage group flex flex-col justify-between p-4 transition"
+                className="glass-card tint-sage group flex min-w-0 flex-col justify-between p-3.5 transition sm:p-4"
               >
                 <div>
-                  <div className="flex items-center justify-between font-mono text-[11px] text-[#5B6073] dark:text-[#A4AAC0]">
-                    <span>{res.category}</span>
-                    <span>{res.file_type}</span>
+                  <div className="flex items-center justify-between gap-1 font-mono text-[10px] text-[#5B6073] sm:text-[11px] dark:text-[#A4AAC0]">
+                    <span className="truncate">{res.category}</span>
+                    <span className="truncate">{res.file_type}</span>
                   </div>
-                  <h3 className="mt-2 text-sm font-bold group-hover:text-[#6E78E8]">
+                  <h3 className="mt-2 line-clamp-2 text-xs font-bold group-hover:text-[#6E78E8] sm:text-sm">
                     {res.title}
                   </h3>
                 </div>
-                <div className="mt-4 flex items-center gap-1 font-mono text-[11px] font-medium text-[#0B0D14] dark:text-white">
-                  <BookOpen className="size-3.5" />
-                  <span>Akses Materi</span>
-                  <ExternalLink className="ml-auto size-3 opacity-60" />
+                <div className="mt-3 flex items-center gap-1 font-mono text-[10px] font-medium text-[#0B0D14] sm:mt-4 sm:text-[11px] dark:text-white">
+                  <BookOpen className="size-3.5 shrink-0" />
+                  <span className="truncate">Akses Materi</span>
+                  <ExternalLink className="ml-auto size-3 shrink-0 opacity-60" />
                 </div>
               </a>
             ))}
@@ -515,7 +622,96 @@ export function AssignmentsAndResourcesSection({
   );
 }
 
-export function GallerySection({ photos }: { photos: GalleryPhoto[] }) {
+export function FarewellLettersSection({
+  letters,
+  isAdmin = false,
+  onDeleteLetter,
+}: {
+  letters: FarewellLetter[];
+  isAdmin?: boolean;
+  onDeleteLetter?: (id: string) => void;
+}) {
+  return (
+    <section
+      id="surat-perpisahan"
+      aria-labelledby="heading-surat-perpisahan"
+      className="mx-auto max-w-[1320px] px-4 py-10 sm:px-6 lg:px-8"
+    >
+      <div className="glass-panel p-6 sm:p-8 lg:p-10">
+        <div className="flex flex-col justify-between gap-4 border-b border-black/10 pb-6 dark:border-white/10 sm:flex-row sm:items-end">
+          <div>
+            <p className="inline-flex items-center gap-1.5 font-mono text-xs uppercase tracking-[0.22em] text-[#6E78E8]">
+              <HeartHandshake className="size-3.5" />
+              <span>10 · Arsip Kapsul Waktu &amp; Perpisahan</span>
+            </p>
+            <h2
+              id="heading-surat-perpisahan"
+              className="mt-1.5 text-2xl font-bold tracking-tight sm:text-3xl"
+            >
+              Surat Perpisahan XII PPLG 1 — Class of 2026
+            </h2>
+          </div>
+          <p className="text-xs text-[#5B6073] dark:text-[#A4AAC0]">
+            Catatan hati wali kelas, pengurus, dan 22 siswa menjelang kelulusan SMK.
+          </p>
+        </div>
+
+        {/* 2-Column Card Grid on Mobile (< md), 2-Column Spacious Cards on Desktop */}
+        <div className="mt-6 grid grid-cols-2 gap-2.5 md:grid-cols-2 md:gap-5">
+          {letters.map((letter, idx) => {
+            const tints = ['tint-lilac', 'tint-peach', 'tint-sage', 'tint-sky'];
+            const tint = tints[idx % tints.length];
+            return (
+              <article
+                key={letter.id}
+                className={`glass-card ${tint} flex min-w-0 flex-col justify-between p-3.5 sm:p-6`}
+              >
+                <div>
+                  <div className="flex flex-wrap items-center justify-between gap-1 font-mono text-[10px] text-[#5B6073] sm:text-xs dark:text-[#A4AAC0]">
+                    <span className="truncate font-bold text-[#0B0D14] dark:text-white">
+                      {letter.author_name}
+                    </span>
+                    <span className="truncate">{letter.author_role}</span>
+                  </div>
+                  <h3 className="mt-2 line-clamp-2 text-xs font-extrabold sm:text-lg">
+                    {letter.title}
+                  </h3>
+                  <p className="mt-1.5 line-clamp-4 text-[11px] leading-relaxed text-[#5B6073] sm:line-clamp-none sm:text-sm dark:text-[#A4AAC0]">
+                    &ldquo;{letter.body}&rdquo;
+                  </p>
+                </div>
+
+                <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-black/10 pt-2.5 font-mono text-[10px] text-[#5B6073] sm:mt-4 sm:pt-3 dark:border-white/10 dark:text-[#A4AAC0]">
+                  <span className="truncate">✦ Momen: {letter.memory_highlight}</span>
+                  {isAdmin && onDeleteLetter && (
+                    <button
+                      type="button"
+                      onClick={() => onDeleteLetter(letter.id)}
+                      className="inline-flex items-center gap-1 font-semibold text-[#E11D48] hover:underline"
+                    >
+                      <Trash2 className="size-3" />
+                      <span>Hapus</span>
+                    </button>
+                  )}
+                </div>
+              </article>
+            );
+          })}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+export function GallerySection({
+  photos,
+  isAdmin = false,
+  onDeletePhoto,
+}: {
+  photos: GalleryPhoto[];
+  isAdmin?: boolean;
+  onDeletePhoto?: (id: string) => void;
+}) {
   const [selectedPhoto, setSelectedPhoto] = React.useState<GalleryPhoto | null>(null);
 
   return (
@@ -528,7 +724,7 @@ export function GallerySection({ photos }: { photos: GalleryPhoto[] }) {
         <div className="flex flex-col justify-between gap-4 border-b border-black/10 pb-6 dark:border-white/10 sm:flex-row sm:items-end">
           <div>
             <p className="font-mono text-xs uppercase tracking-[0.22em] text-[#5B6073] dark:text-[#A4AAC0]">
-              10 · Arsip Visual & Dokumentasi
+              11 · Arsip Visual &amp; Dokumentasi
             </p>
             <h2 id="heading-galeri" className="mt-1.5 text-2xl font-bold tracking-tight sm:text-3xl">
               Galeri Momen XII PPLG 1
@@ -539,40 +735,58 @@ export function GallerySection({ photos }: { photos: GalleryPhoto[] }) {
           </p>
         </div>
 
-        <div className="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        {/* 2-Column Card Grid on Mobile (< md), 3-Column on Desktop */}
+        <div className="mt-6 grid grid-cols-2 gap-2.5 sm:gap-5 lg:grid-cols-3">
           {photos.map((photo, idx) => (
-            <button
+            <div
               key={photo.id}
-              type="button"
-              onClick={() => setSelectedPhoto(photo)}
-              className={`glass-card ${photo.tint} group flex flex-col justify-between p-5 text-left`}
+              className={`glass-card ${photo.tint} group flex min-w-0 flex-col justify-between p-3.5 text-left sm:p-5`}
             >
-              {/* Stylized Procedural Artwork Frame */}
-              <div
-                className="relative flex h-44 w-full flex-col justify-between overflow-hidden rounded-2xl border border-white/60 p-4 dark:border-white/15"
-                style={{
-                  background: `radial-gradient(circle at 80% 20%, ${photo.accent}44, transparent 65%), linear-gradient(135deg, rgba(255,255,255,0.6), rgba(255,255,255,0.2))`,
-                }}
+              <button
+                type="button"
+                onClick={() => setSelectedPhoto(photo)}
+                className="w-full text-left"
               >
-                <div className="flex items-center justify-between font-mono text-[11px]">
-                  <span className="tabular-nums text-[#0B0D14] dark:text-white">
-                    ALBUM 0{idx + 1} · {photo.taken_on}
-                  </span>
-                  <Maximize2 className="size-3.5 opacity-60 transition group-hover:scale-110 group-hover:opacity-100" />
+                {/* Stylized Procedural Artwork Frame */}
+                <div
+                  className="relative flex h-28 w-full flex-col justify-between overflow-hidden rounded-2xl border border-white/60 p-2.5 sm:h-44 sm:p-4 dark:border-white/15"
+                  style={{
+                    background: `radial-gradient(circle at 80% 20%, ${photo.accent}44, transparent 65%), linear-gradient(135deg, rgba(255,255,255,0.6), rgba(255,255,255,0.2))`,
+                  }}
+                >
+                  <div className="flex items-center justify-between gap-1 font-mono text-[9px] sm:text-[11px]">
+                    <span className="truncate tabular-nums text-[#0B0D14] dark:text-white">
+                      ALBUM 0{idx + 1} · {photo.taken_on}
+                    </span>
+                    <Maximize2 className="size-3.5 shrink-0 opacity-60 transition group-hover:scale-110 group-hover:opacity-100" />
+                  </div>
+
+                  <div className="truncate rounded-xl bg-[#0B0D14]/85 px-2.5 py-1.5 font-mono text-[9px] text-white sm:px-3 sm:py-2 sm:text-[11px]">
+                    <code>{photo.codeSnippet}</code>
+                  </div>
                 </div>
 
-                <div className="rounded-xl bg-[#0B0D14]/85 px-3 py-2 font-mono text-[11px] text-white">
-                  <code>{photo.codeSnippet}</code>
+                <div className="mt-3 sm:mt-4">
+                  <h3 className="line-clamp-1 text-xs font-bold sm:text-base">{photo.albumTitle}</h3>
+                  <p className="mt-1 line-clamp-2 text-[11px] leading-relaxed text-[#5B6073] sm:text-xs dark:text-[#A4AAC0]">
+                    {photo.caption}
+                  </p>
                 </div>
-              </div>
+              </button>
 
-              <div className="mt-4">
-                <h3 className="text-base font-bold">{photo.albumTitle}</h3>
-                <p className="mt-1 text-xs leading-relaxed text-[#5B6073] dark:text-[#A4AAC0]">
-                  {photo.caption}
-                </p>
-              </div>
-            </button>
+              {isAdmin && onDeletePhoto && (
+                <div className="mt-2.5 flex justify-end border-t border-black/10 pt-2 dark:border-white/10">
+                  <button
+                    type="button"
+                    onClick={() => onDeletePhoto(photo.id)}
+                    className="inline-flex items-center gap-1 font-mono text-[10px] font-semibold text-[#E11D48] hover:underline"
+                  >
+                    <Trash2 className="size-3" />
+                    <span>Hapus Album</span>
+                  </button>
+                </div>
+              )}
+            </div>
           ))}
         </div>
 
@@ -586,7 +800,7 @@ export function GallerySection({ photos }: { photos: GalleryPhoto[] }) {
             onClick={() => setSelectedPhoto(null)}
           >
             <div
-              className="glass-panel max-w-xl w-full p-6 sm:p-8"
+              className="glass-panel w-full max-w-xl p-6 sm:p-8"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex items-center justify-between">
@@ -606,7 +820,7 @@ export function GallerySection({ photos }: { photos: GalleryPhoto[] }) {
               <p className="mt-2 text-sm text-[#5B6073] dark:text-[#A4AAC0]">
                 {selectedPhoto.caption}
               </p>
-              <div className="mt-4 rounded-2xl bg-[#0B0D14] p-4 font-mono text-xs text-[#54CEBA]">
+              <div className="mt-4 overflow-x-auto rounded-2xl bg-[#0B0D14] p-4 font-mono text-xs text-[#54CEBA]">
                 {selectedPhoto.codeSnippet}
               </div>
             </div>

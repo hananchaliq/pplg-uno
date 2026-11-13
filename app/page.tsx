@@ -13,9 +13,14 @@ import {
   INITIAL_GALLERY,
   INITIAL_KAS,
   INITIAL_GUESTBOOK,
+  INITIAL_FAREWELL_LETTERS,
   AnnouncementItem,
+  AssignmentItem,
+  FarewellLetter,
+  GalleryPhoto,
   GuestbookEntry,
   KasTransaction,
+  ScheduleSlot,
   StudentRecord,
 } from '@/lib/class-data';
 import {
@@ -33,6 +38,9 @@ import {
   deleteDoc,
   onSnapshot,
 } from 'firebase/firestore';
+import { createSupabaseBrowserClient, isSupabaseConfigured } from '@/lib/supabase/browser';
+import { useAdminAuth } from '@/components/providers/admin-auth-provider';
+import { ClassBootLoader } from '@/components/ui/class-boot-loader';
 import { DevDeskHeroCanvas } from '@/components/three/dev-desk-canvas';
 import { ClassMembersSection } from '@/components/sections/class-members-section';
 import { DreamBoardSection } from '@/components/three/dream-board-section';
@@ -42,6 +50,7 @@ import {
   ScheduleAndPiketSection,
   AnnouncementsAndEventsSection,
   AssignmentsAndResourcesSection,
+  FarewellLettersSection,
   GallerySection,
 } from '@/components/sections/academic-hub-sections';
 import {
@@ -58,6 +67,7 @@ import {
   ArrowRight,
   Sparkles,
   Shield,
+  LogOut,
   Github,
   Instagram,
   MessageCircle,
@@ -68,20 +78,59 @@ const ADMIN_EMAIL = 'ananxpplg1@gmail.com';
 
 export default function HomePage() {
   const { theme, setTheme } = useTheme();
+  const { isAdmin, logoutAdmin } = useAdminAuth();
 
   // Interactive states
   const [cmdOpen, setCmdOpen] = React.useState(false);
   const [adminOpen, setAdminOpen] = React.useState(false);
   const [selectedStudentId, setSelectedStudentId] = React.useState<string | null>(null);
 
-  // Live collections backed by initial deterministic class seed + Firestore sync
+  // Live collections backed by initial deterministic class seed + Supabase / Firestore sync
   const [students, setStudents] = React.useState<StudentRecord[]>(INITIAL_STUDENTS);
+  const [schedules, setSchedules] = React.useState<ScheduleSlot[]>(INITIAL_SCHEDULES);
   const [announcements, setAnnouncements] = React.useState<AnnouncementItem[]>(INITIAL_ANNOUNCEMENTS);
+  const [assignments, setAssignments] = React.useState<AssignmentItem[]>(INITIAL_ASSIGNMENTS);
+  const [farewellLetters, setFarewellLetters] = React.useState<FarewellLetter[]>(INITIAL_FAREWELL_LETTERS);
+  const [galleryPhotos, setGalleryPhotos] = React.useState<GalleryPhoto[]>(INITIAL_GALLERY);
   const [guestbook, setGuestbook] = React.useState<GuestbookEntry[]>(INITIAL_GUESTBOOK);
   const [kasList, setKasList] = React.useState<KasTransaction[]>(INITIAL_KAS);
 
   React.useEffect(() => {
     validateFirestoreConnection();
+
+    // Optional Supabase initial fetch via server route (prevents browser 404 noise if schema.sql is not yet applied)
+    if (isSupabaseConfigured()) {
+      void (async () => {
+        try {
+          const res = await fetch('/api/supabase-archive', { cache: 'no-store' });
+          if (!res.ok) return;
+          const json = (await res.json()) as {
+            synced?: boolean;
+            students?: Array<Record<string, unknown>>;
+            farewellLetters?: FarewellLetter[];
+          };
+          if (json.students && json.students.length > 0) {
+            const sbMap = new Map<number, Partial<StudentRecord>>();
+            json.students.forEach((row) => {
+              if (typeof row.roll_no === 'number') {
+                sbMap.set(row.roll_no, row as Partial<StudentRecord>);
+              }
+            });
+            setStudents((prev) =>
+              prev.map((st) => {
+                const remote = sbMap.get(st.roll_no);
+                return remote ? { ...st, ...remote } : st;
+              })
+            );
+          }
+          if (json.farewellLetters && json.farewellLetters.length > 0) {
+            setFarewellLetters(json.farewellLetters);
+          }
+        } catch {
+          // Graceful fallback to initial seed + Firestore
+        }
+      })();
+    }
 
     // Sync any updated student dream notes from Firestore
     const unsubStudents = onSnapshot(
@@ -150,6 +199,7 @@ export default function HomePage() {
       dream_reason: string;
       dream_description: string;
       dream_paper_color: string;
+      capsule_message?: string;
     }
   ) => {
     const target = students.find((s) => s.id === studentId);
@@ -158,11 +208,31 @@ export default function HomePage() {
     const updated: StudentRecord = {
       ...target,
       ...payload,
+      capsule_message: payload.capsule_message ?? target.capsule_message,
     };
 
     setStudents((prev) =>
       prev.map((s) => (s.id === studentId ? updated : s))
     );
+
+    // Persist to Supabase if configured
+    const supabase = createSupabaseBrowserClient();
+    if (supabase && isSupabaseConfigured()) {
+      try {
+        await supabase
+          .from('students')
+          .update({
+            dream_title: updated.dream_title,
+            dream_reason: updated.dream_reason,
+            dream_description: updated.dream_description,
+            dream_paper_color: updated.dream_paper_color,
+            capsule_message: updated.capsule_message,
+          })
+          .eq('roll_no', updated.roll_no);
+      } catch {
+        // Fallback to local state
+      }
+    }
 
     if (auth.currentUser?.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
       try {
@@ -184,6 +254,114 @@ export default function HomePage() {
         handleFirestoreError(error, OperationType.WRITE, `students/${studentId}`);
       }
     }
+  };
+
+  const handleResetStudentDream = async (studentId: string) => {
+    const seed = INITIAL_STUDENTS.find((s) => s.id === studentId);
+    if (!seed) return;
+    await handleUpdateStudentDream(studentId, {
+      dream_title: seed.dream_title,
+      dream_reason: seed.dream_reason,
+      dream_description: seed.dream_description,
+      dream_paper_color: seed.dream_paper_color || '#FFFBEB',
+      capsule_message: seed.capsule_message,
+    });
+  };
+
+  const handleAddFarewellLetter = async (
+    payload: Omit<FarewellLetter, 'id' | 'created_at'>
+  ) => {
+    const newItem: FarewellLetter = {
+      ...payload,
+      id: `fw-${Date.now()}`,
+      created_at: new Date().toISOString().slice(0, 10),
+    };
+    setFarewellLetters((prev) => [newItem, ...prev]);
+
+    const supabase = createSupabaseBrowserClient();
+    if (supabase && isSupabaseConfigured()) {
+      try {
+        await supabase.from('farewell_letters').insert([
+          {
+            author_name: newItem.author_name,
+            author_role: newItem.author_role,
+            title: newItem.title,
+            body: newItem.body,
+            memory_highlight: newItem.memory_highlight,
+          },
+        ]);
+      } catch {
+        // Local fallback
+      }
+    }
+  };
+
+  const handleDeleteFarewellLetter = async (id: string) => {
+    setFarewellLetters((prev) => prev.filter((item) => item.id !== id));
+    const supabase = createSupabaseBrowserClient();
+    if (supabase && isSupabaseConfigured()) {
+      try {
+        await supabase.from('farewell_letters').delete().eq('id', id);
+      } catch {
+        // Local fallback
+      }
+    }
+    toast.success('Surat perpisahan dihapus.');
+  };
+
+  const handleAddGalleryPhoto = async (payload: Omit<GalleryPhoto, 'id'>) => {
+    const newPhoto: GalleryPhoto = {
+      ...payload,
+      id: `gal-${Date.now()}`,
+    };
+    setGalleryPhotos((prev) => [newPhoto, ...prev]);
+
+    const supabase = createSupabaseBrowserClient();
+    if (supabase && isSupabaseConfigured()) {
+      try {
+        await supabase.from('gallery_photos').insert([payload]);
+      } catch {
+        // Local fallback
+      }
+    }
+  };
+
+  const handleDeleteGalleryPhoto = async (id: string) => {
+    setGalleryPhotos((prev) => prev.filter((p) => p.id !== id));
+    const supabase = createSupabaseBrowserClient();
+    if (supabase && isSupabaseConfigured()) {
+      try {
+        await supabase.from('gallery_photos').delete().eq('id', id);
+      } catch {
+        // Local fallback
+      }
+    }
+    toast.success('Foto dokumentasi dihapus dari galeri.');
+  };
+
+  const handleAddAssignment = async (payload: Omit<AssignmentItem, 'id'>) => {
+    const newTask: AssignmentItem = {
+      ...payload,
+      id: `tgs-${Date.now()}`,
+    };
+    setAssignments((prev) => [newTask, ...prev]);
+  };
+
+  const handleDeleteAssignment = async (id: string) => {
+    setAssignments((prev) => prev.filter((t) => t.id !== id));
+    toast.success('Tugas berhasil dihapus.');
+  };
+
+  const handleAddScheduleSlot = async (payload: Omit<ScheduleSlot, 'id'>) => {
+    const newSlot: ScheduleSlot = {
+      ...payload,
+      id: `sch-${Date.now()}`,
+    };
+    setSchedules((prev) => [...prev, newSlot]);
+  };
+
+  const handleDeleteScheduleSlot = async (id: string) => {
+    setSchedules((prev) => prev.filter((s) => s.id !== id));
   };
 
   const handleReaction = async (announcementId: string, emoji: string) => {
@@ -295,14 +473,17 @@ export default function HomePage() {
   };
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen overflow-x-hidden">
+      {/* 60FPS Pre-mount ClassBootLoader (JetBrains Mono 00%–100% + Module Boot Logs, CLS = 0) */}
+      <ClassBootLoader />
+
       {/* Strict 3-Zone Top Navigation Bar Contract */}
       <header className="sticky top-0 z-40 border-b border-black/10 bg-[#EEF0F8]/80 backdrop-blur-xl dark:border-white/10 dark:bg-[#0A0C16]/80">
-        <div className="mx-auto flex max-w-[1320px] items-center justify-between gap-8 px-4 py-3.5 sm:px-6 lg:px-8">
+        <div className="mx-auto flex max-w-[1320px] items-center justify-between gap-4 px-4 py-3.5 sm:gap-8 sm:px-6 lg:px-8">
           {/* Zone 1: Single text element wordmark */}
           <a
             href="#"
-            className="text-lg font-extrabold tracking-tight text-[#0B0D14] whitespace-nowrap shrink-0 dark:text-white"
+            className="shrink-0 whitespace-nowrap text-base font-extrabold tracking-tight text-[#0B0D14] sm:text-lg dark:text-white"
           >
             XII PPLG 1
           </a>
@@ -314,43 +495,43 @@ export default function HomePage() {
           >
             <a
               href="#anggota-kelas"
-              className="hover:text-[#0B0D14] hover:underline whitespace-nowrap shrink-0 transition dark:hover:text-white"
+              className="shrink-0 whitespace-nowrap transition hover:text-[#0B0D14] hover:underline dark:hover:text-white"
             >
               Anggota
             </a>
             <a
               href="#papan-cita-cita"
-              className="inline-flex items-center gap-1.5 hover:text-[#0B0D14] hover:underline whitespace-nowrap shrink-0 transition dark:hover:text-white"
+              className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap transition hover:text-[#0B0D14] hover:underline dark:hover:text-white"
             >
               <Sparkles className="size-3.5 text-[#6E78E8]" strokeWidth={1.5} />
               <span>Papan Cita-Cita</span>
             </a>
             <a
               href="#jadwal-kelas"
-              className="hover:text-[#0B0D14] hover:underline whitespace-nowrap shrink-0 transition dark:hover:text-white"
+              className="shrink-0 whitespace-nowrap transition hover:text-[#0B0D14] hover:underline dark:hover:text-white"
             >
               Jadwal
             </a>
             <a
               href="#kas-kelas"
-              className="hover:text-[#0B0D14] hover:underline whitespace-nowrap shrink-0 transition dark:hover:text-white"
+              className="shrink-0 whitespace-nowrap transition hover:text-[#0B0D14] hover:underline dark:hover:text-white"
             >
               Kas Kelas
             </a>
             <a
               href="#buku-tamu"
-              className="hover:text-[#0B0D14] hover:underline whitespace-nowrap shrink-0 transition dark:hover:text-white"
+              className="shrink-0 whitespace-nowrap transition hover:text-[#0B0D14] hover:underline dark:hover:text-white"
             >
               Buku Tamu
             </a>
           </nav>
 
           {/* Zone 3: 1 primary action */}
-          <div className="flex items-center gap-3 shrink-0">
+          <div className="flex shrink-0 items-center gap-3">
             <button
               type="button"
               onClick={() => setCmdOpen(true)}
-              className="inline-flex h-10 items-center gap-2 rounded-full bg-[#0B0D14] px-4 text-xs font-semibold text-white whitespace-nowrap shrink-0 transition hover:opacity-90 dark:bg-white dark:text-[#0B0D14]"
+              className="inline-flex h-10 shrink-0 items-center gap-2 whitespace-nowrap rounded-full bg-[#0B0D14] px-3.5 text-xs font-semibold text-white transition hover:opacity-90 sm:px-4 dark:bg-white dark:text-[#0B0D14]"
             >
               <Search className="size-3.5" />
               <span>Cari &amp; Pintasan (⌘K)</span>
@@ -366,18 +547,28 @@ export default function HomePage() {
           aria-labelledby="hero-heading"
           className="mx-auto max-w-[1320px] px-4 pt-8 pb-10 sm:px-6 lg:px-8"
         >
-          <div className="glass-panel p-6 sm:p-8 lg:p-10">
-            {/* Workspace Toolbar Row inside Hero (Theme & Admin access) */}
+          <div className="glass-panel p-5 sm:p-8 lg:p-10">
+            {/* Workspace Toolbar Row inside Hero (Theme & Admin access + ADMIN MODE ACTIVE indicator) */}
             <div className="mb-6 flex flex-wrap items-center justify-between gap-3 border-b border-black/10 pb-4 dark:border-white/10">
               <div className="flex flex-wrap items-center gap-2 font-mono text-xs text-[#5B6073] dark:text-[#A4AAC0]">
                 <span>Pengembangan Perangkat Lunak dan Gim</span>
                 <span aria-hidden="true">·</span>
                 <span>22 Siswa Aktif</span>
                 <span aria-hidden="true">·</span>
-                <span>Tahun Ajaran {INITIAL_CLASS_INFO.school_year}</span>
+                <span>Class of 2026 ({INITIAL_CLASS_INFO.school_year})</span>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
+                {isAdmin && (
+                  <span
+                    data-testid="admin-mode-badge"
+                    className="inline-flex h-9 items-center gap-1.5 rounded-full border border-[#3FB8A5]/40 bg-[#3FB8A5]/15 px-3 font-mono text-[11px] font-bold uppercase tracking-wider text-[#1F7A6C] dark:text-[#6EE7B7]"
+                  >
+                    <span className="size-2 rounded-full bg-[#3FB8A5]" />
+                    ADMIN MODE ACTIVE
+                  </span>
+                )}
+
                 <button
                   type="button"
                   aria-label="Ganti tema terang atau gelap"
@@ -403,8 +594,22 @@ export default function HomePage() {
                   className="inline-flex h-9 items-center gap-1.5 rounded-full border border-black/15 bg-white/75 px-3.5 text-xs font-medium text-[#0B0D14] transition hover:bg-white dark:border-white/20 dark:bg-white/10 dark:text-white"
                 >
                   <Shield className="size-3.5 text-[#6E78E8]" />
-                  <span>Admin Kelas</span>
+                  <span>{isAdmin ? 'Panel Admin' : 'Admin Kelas'}</span>
                 </button>
+
+                {isAdmin && (
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      await logoutAdmin();
+                      toast.success('Sesi Admin Kelas berhasil diakhiri.');
+                    }}
+                    className="inline-flex h-9 items-center gap-1.5 rounded-full border border-[#E11D48]/30 bg-[#E11D48]/10 px-3 text-xs font-semibold text-[#E11D48] transition hover:bg-[#E11D48]/20"
+                  >
+                    <LogOut className="size-3.5" />
+                    <span>Logout</span>
+                  </button>
+                )}
               </div>
             </div>
 
@@ -414,7 +619,7 @@ export default function HomePage() {
               <div className="flex flex-col justify-between lg:col-span-6">
                 <div>
                   <p className="font-mono text-xs uppercase tracking-[0.24em] text-[#6E78E8]">
-                    01 · Rumah Digital &amp; Studio Rekayasa
+                    01 · Rumah Digital &amp; Kapsul Kelulusan Class of 2026
                   </p>
                   <h1
                     id="hero-heading"
@@ -423,21 +628,21 @@ export default function HomePage() {
                     Kelas {INITIAL_CLASS_INFO.name} — Merakit Kode, Gim 3D &amp; Masa Depan Impian.
                   </h1>
                   <p className="mt-4 max-w-xl text-base leading-relaxed text-[#5B6073] dark:text-[#A4AAC0]">
-                    {INITIAL_CLASS_INFO.tagline} Akses direktori lanyard 22 teman sekelas, baca tempelan kertas cita-cita 3D interaktif di papan tulis kelas, hingga pantau jadwal praktikum waktu nyata WIB.
+                    {INITIAL_CLASS_INFO.tagline} Akses direktori lanyard 22 teman sekelas, baca tempelan kertas cita-cita 3D interaktif di papan tulis kelas, jelajahi artefak kapsul kelulusan 3D, hingga pantau jadwal praktikum waktu nyata WIB.
                   </p>
 
                   {/* 2 Pill Buttons: 1 Solid Ink, 1 Outline */}
                   <div className="mt-7 flex flex-wrap items-center gap-3.5">
                     <a
                       href="#anggota-kelas"
-                      className="inline-flex h-11 items-center gap-2 rounded-full bg-[#0B0D14] px-6 text-xs font-semibold text-white whitespace-nowrap transition hover:opacity-90 active:scale-97 dark:bg-white dark:text-[#0B0D14]"
+                      className="inline-flex h-11 items-center gap-2 whitespace-nowrap rounded-full bg-[#0B0D14] px-6 text-xs font-semibold text-white transition hover:opacity-90 active:scale-97 dark:bg-white dark:text-[#0B0D14]"
                     >
                       <span>Kenali 22 Anggota Kelas</span>
                       <ArrowRight className="size-4" />
                     </a>
                     <a
                       href="#papan-cita-cita"
-                      className="inline-flex h-11 items-center gap-2 rounded-full border border-[#0B0D14] bg-transparent px-6 text-xs font-semibold text-[#0B0D14] whitespace-nowrap transition hover:bg-black/5 active:scale-97 dark:border-white dark:text-white dark:hover:bg-white/10"
+                      className="inline-flex h-11 items-center gap-2 whitespace-nowrap rounded-full border border-[#0B0D14] bg-transparent px-6 text-xs font-semibold text-[#0B0D14] transition hover:bg-black/5 active:scale-97 dark:border-white dark:text-white dark:hover:bg-white/10"
                     >
                       <Sparkles className="size-4 text-[#6E78E8]" strokeWidth={1.5} />
                       <span>Papan Cita-Cita 3D</span>
@@ -483,7 +688,7 @@ export default function HomePage() {
             </div>
 
             {/* Live WIB Schedule Status Banner */}
-            <LiveScheduleBanner schedules={INITIAL_SCHEDULES} />
+            <LiveScheduleBanner schedules={schedules} />
           </div>
         </section>
 
@@ -494,15 +699,20 @@ export default function HomePage() {
           onClearSelectedStudent={() => setSelectedStudentId(null)}
         />
 
-        {/* SECTION 3: PAPAN TULIS CITA-CITA 3D (Replaces Taman Impian) */}
-        <DreamBoardSection students={students} />
+        {/* SECTION 3: PAPAN TULIS CITA-CITA 3D STATIS & 22 KERTAS INTERAKTIF (ClassDreamBoard3D) */}
+        <DreamBoardSection
+          students={students}
+          isAdmin={isAdmin}
+          onUpdateStudentDream={handleUpdateStudentDream}
+          onResetStudentDream={handleResetStudentDream}
+        />
 
-        {/* SECTION 4: TENTANG KELAS */}
+        {/* SECTION 4: TENTANG KELAS & 3D GRADUATION CAPSULE ARTIFACTS */}
         <AboutClassSection info={INITIAL_CLASS_INFO} />
 
-        {/* SECTION 5: JADWAL PELAJARAN & PIKET */}
+        {/* SECTION 5: JADWAL PELAJARAN & PIKET (2-Column Mobile Card Grid) */}
         <ScheduleAndPiketSection
-          schedules={INITIAL_SCHEDULES}
+          schedules={schedules}
           piket={INITIAL_PIKET}
           students={students}
         />
@@ -514,38 +724,51 @@ export default function HomePage() {
           onReact={handleReaction}
         />
 
-        {/* SECTION 8 & 9: TUGAS & RESOURCE HUB */}
+        {/* SECTION 8 & 9: TUGAS & RESOURCE HUB (2-Column Mobile Card Grid) */}
         <AssignmentsAndResourcesSection
-          assignments={INITIAL_ASSIGNMENTS}
+          assignments={assignments}
           resources={INITIAL_RESOURCES}
+          isAdmin={isAdmin}
+          onDeleteAssignment={handleDeleteAssignment}
         />
 
-        {/* SECTION 10: GALERI KELAS */}
-        <GallerySection photos={INITIAL_GALLERY} />
+        {/* SECTION 10: SURAT PERPISAHAN & PESAN WALI KELAS (2-Column Mobile Card Grid) */}
+        <FarewellLettersSection
+          letters={farewellLetters}
+          isAdmin={isAdmin}
+          onDeleteLetter={handleDeleteFarewellLetter}
+        />
 
-        {/* SECTION 11: KAS KELAS */}
+        {/* SECTION 11: GALERI KELAS (2-Column Mobile Card Grid) */}
+        <GallerySection
+          photos={galleryPhotos}
+          isAdmin={isAdmin}
+          onDeletePhoto={handleDeleteGalleryPhoto}
+        />
+
+        {/* SECTION 12: KAS KELAS (2-Column Mobile Card Grid) */}
         <KasKelasSection transactions={kasList} />
 
-        {/* SECTION 12: BUKU TAMU REALTIME */}
+        {/* SECTION 13: BUKU TAMU REALTIME */}
         <GuestbookSection
           entries={guestbook}
           onSubmitEntry={handleGuestbookSubmit}
         />
       </main>
 
-      {/* SECTION 13: FOOTER */}
+      {/* SECTION 14: FOOTER */}
       <footer className="mx-auto max-w-[1320px] px-4 py-10 sm:px-6 lg:px-8">
         <div className="glass-panel flex flex-col items-center justify-between gap-4 px-6 py-6 sm:flex-row">
           <div>
             <p className="text-sm font-bold">
-              {INITIAL_CLASS_INFO.name} · Pengembangan Perangkat Lunak dan Gim
+              {INITIAL_CLASS_INFO.name} — Class of 2026 · Pengembangan Perangkat Lunak dan Gim
             </p>
             <p className="text-xs text-[#5B6073] dark:text-[#A4AAC0]">
-              Rumah digital 22 siswa · Tahun Ajaran {INITIAL_CLASS_INFO.school_year}
+              Rumah digital &amp; kapsul kelulusan 22 siswa · Tahun Ajaran {INITIAL_CLASS_INFO.school_year}
             </p>
           </div>
 
-          <div className="flex items-center gap-4 text-xs font-medium">
+          <div className="flex flex-wrap items-center gap-4 text-xs font-medium">
             <a
               href={INITIAL_CLASS_INFO.socials.github}
               target="_blank"
@@ -587,7 +810,7 @@ export default function HomePage() {
         onOpenAdmin={() => setAdminOpen(true)}
       />
 
-      {/* Admin Single-Account Moderation Modal */}
+      {/* Admin Single-Account Moderation & Full CRUD Modal */}
       <AdminDrawerModal
         open={adminOpen}
         onOpenChange={setAdminOpen}
@@ -595,11 +818,24 @@ export default function HomePage() {
         announcements={announcements}
         guestbook={guestbook}
         kasTransactions={kasList}
+        farewellLetters={farewellLetters}
+        galleryPhotos={galleryPhotos}
+        schedules={schedules}
+        assignments={assignments}
         onUpdateStudentDream={handleUpdateStudentDream}
+        onResetStudentDream={handleResetStudentDream}
         onAddAnnouncement={handleAddAnnouncement}
         onDeleteAnnouncement={handleDeleteAnnouncement}
         onModerateGuestbook={handleModerateGuestbook}
         onAddKasTransaction={handleAddKasTransaction}
+        onAddFarewellLetter={handleAddFarewellLetter}
+        onDeleteFarewellLetter={handleDeleteFarewellLetter}
+        onAddGalleryPhoto={handleAddGalleryPhoto}
+        onDeleteGalleryPhoto={handleDeleteGalleryPhoto}
+        onAddAssignment={handleAddAssignment}
+        onDeleteAssignment={handleDeleteAssignment}
+        onAddScheduleSlot={handleAddScheduleSlot}
+        onDeleteScheduleSlot={handleDeleteScheduleSlot}
       />
     </div>
   );
