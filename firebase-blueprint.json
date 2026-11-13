@@ -1,0 +1,110 @@
+{
+  "entities": {
+    "ClassInfo": {
+      "title": "ClassInfo",
+      "description": "Informasi utama kelas XII PPLG 1",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "maxLength": 80 },
+        "tagline": { "type": "string", "maxLength": 200 },
+        "description": { "type": "string", "maxLength": 600 },
+        "homeroom_teacher": { "type": "string", "maxLength": 100 },
+        "school_year": { "type": "string", "maxLength": 40 },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "tagline", "homeroom_teacher", "school_year"]
+    },
+    "Student": {
+      "title": "Student",
+      "description": "Anggota kelas XII PPLG 1",
+      "type": "object",
+      "properties": {
+        "roll_no": { "type": "integer" },
+        "name": { "type": "string", "maxLength": 80 },
+        "role": { "type": "string", "maxLength": 60 },
+        "avatar_url": { "type": "string", "maxLength": 2000 },
+        "bio": { "type": "string", "maxLength": 300 },
+        "tags": { "type": "array" },
+        "tone": { "type": "integer" },
+        "is_published": { "type": "boolean" }
+      },
+      "required": ["roll_no", "name", "role", "tone", "is_published"]
+    },
+    "Announcement": {
+      "title": "Announcement",
+      "description": "Pengumuman kelas XII PPLG 1",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string", "maxLength": 140 },
+        "body": { "type": "string", "maxLength": 1200 },
+        "category": { "type": "string", "maxLength": 40 },
+        "is_pinned": { "type": "boolean" },
+        "published_at": { "type": "string", "maxLength": 60 }
+      },
+      "required": ["title", "body", "category", "is_pinned", "published_at"]
+    },
+    "GuestbookMessage": {
+      "title": "GuestbookMessage",
+      "description": "Pesan buku tamu untuk kelas XII PPLG 1",
+      "type": "object",
+      "properties": {
+        "sender_name": { "type": "string", "minLength": 1, "maxLength": 40 },
+        "message": { "type": "string", "minLength": 1, "maxLength": 280 },
+        "status": { "type": "string", "enum": ["pending", "approved", "rejected"] },
+        "created_at": { "type": "string", "maxLength": 60 }
+      },
+      "required": ["sender_name", "message", "status", "created_at"]
+    },
+    "Assignment": {
+      "title": "Assignment",
+      "description": "Tugas dan deadline mata pelajaran",
+      "type": "object",
+      "properties": {
+        "subject": { "type": "string", "maxLength": 80 },
+        "title": { "type": "string", "maxLength": 140 },
+        "description": { "type": "string", "maxLength": 600 },
+        "deadline": { "type": "string", "maxLength": 60 },
+        "link": { "type": "string", "maxLength": 500 }
+      },
+      "required": ["subject", "title", "deadline"]
+    },
+    "KasTransaction": {
+      "title": "KasTransaction",
+      "description": "Transaksi kas kelas transparan",
+      "type": "object",
+      "properties": {
+        "occurred_on": { "type": "string", "maxLength": 30 },
+        "type": { "type": "string", "enum": ["masuk", "keluar"] },
+        "amount": { "type": "integer" },
+        "note": { "type": "string", "maxLength": 200 }
+      },
+      "required": ["occurred_on", "type", "amount", "note"]
+    }
+  },
+  "firestore": {
+    "/class_info/{docId}": {
+      "schema": { "$ref": "#/entities/ClassInfo" },
+      "description": "Dokumen tunggal informasi kelas"
+    },
+    "/students/{studentId}": {
+      "schema": { "$ref": "#/entities/Student" },
+      "description": "Daftar 22 siswa XII PPLG 1"
+    },
+    "/announcements/{announcementId}": {
+      "schema": { "$ref": "#/entities/Announcement" },
+      "description": "Daftar pengumuman kelas"
+    },
+    "/guestbook/{entryId}": {
+      "schema": { "$ref": "#/entities/GuestbookMessage" },
+      "description": "Catatan buku tamu kelas"
+    },
+    "/assignments/{assignmentId}": {
+      "schema": { "$ref": "#/entities/Assignment" },
+      "description": "Daftar tugas dan deadline kelas"
+    },
+    "/kas_transactions/{txId}": {
+      "schema": { "$ref": "#/entities/KasTransaction" },
+      "description": "Riwayat kas kelas"
+    }
+  }
+}

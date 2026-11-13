@@ -1,0 +1,6 @@
+{
+  "name": "XII PPLG 1 · Rumah Digital & Botanical Studio",
+  "description": "Rumah digital kelas XII PPLG 1 (Pengembangan Perangkat Lunak dan Gim): direktori lanyard 22 siswa, jadwal live WIB, 3D Dev Desk Assembly, kas kelas, buku tamu realtime, dan AI Botanical Garden & Visual Studio.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

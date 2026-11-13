@@ -1,0 +1,167 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global Safety Net: Default Deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        (request.auth.token.email == "ananxpplg1@gmail.com" && request.auth.token.email_verified == true) ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
+    }
+
+    function isValidClassInfo(data) {
+      return data.keys().hasAll(['name', 'tagline', 'homeroom_teacher', 'school_year']) &&
+        data.keys().hasOnly(['name', 'tagline', 'description', 'homeroom_teacher', 'school_year', 'updatedAt']) &&
+        data.name is string && data.name.size() >= 1 && data.name.size() <= 80 &&
+        data.tagline is string && data.tagline.size() <= 200 &&
+        (!('description' in data) || (data.description is string && data.description.size() <= 600)) &&
+        data.homeroom_teacher is string && data.homeroom_teacher.size() <= 100 &&
+        data.school_year is string && data.school_year.size() <= 40 &&
+        (!('updatedAt' in data) || (data.updatedAt is string && data.updatedAt.size() <= 60));
+    }
+
+    function isValidStudent(data) {
+      return data.keys().hasAll(['roll_no', 'name', 'role', 'tone', 'is_published']) &&
+        data.keys().hasOnly(['roll_no', 'name', 'role', 'avatar_url', 'bio', 'tags', 'tone', 'is_published']) &&
+        data.roll_no is int && data.roll_no >= 1 && data.roll_no <= 99 &&
+        data.name is string && data.name.size() >= 1 && data.name.size() <= 80 &&
+        data.role is string && data.role.size() >= 1 && data.role.size() <= 60 &&
+        (!('avatar_url' in data) || (data.avatar_url is string && data.avatar_url.size() <= 2000)) &&
+        (!('bio' in data) || (data.bio is string && data.bio.size() <= 300)) &&
+        (!('tags' in data) || (data.tags is list && data.tags.size() <= 10 && (data.tags.size() == 0 || (data.tags[0] is string && data.tags[0].size() <= 40)))) &&
+        data.tone is int && data.tone >= 1 && data.tone <= 5 &&
+        data.is_published is bool;
+    }
+
+    function isValidAnnouncement(data) {
+      return data.keys().hasAll(['title', 'body', 'category', 'is_pinned', 'published_at']) &&
+        data.keys().hasOnly(['title', 'body', 'category', 'is_pinned', 'published_at', 'reactions']) &&
+        data.title is string && data.title.size() >= 1 && data.title.size() <= 140 &&
+        data.body is string && data.body.size() >= 1 && data.body.size() <= 1200 &&
+        data.category is string && data.category.size() >= 1 && data.category.size() <= 40 &&
+        data.is_pinned is bool &&
+        data.published_at is string && data.published_at.size() <= 60 &&
+        (!('reactions' in data) || data.reactions is map);
+    }
+
+    function isValidGuestbook(data) {
+      return data.keys().hasAll(['sender_name', 'message', 'status', 'created_at']) &&
+        data.keys().hasOnly(['sender_name', 'message', 'status', 'created_at']) &&
+        data.sender_name is string && data.sender_name.size() >= 1 && data.sender_name.size() <= 40 &&
+        data.message is string && data.message.size() >= 1 && data.message.size() <= 280 &&
+        data.status is string && data.status in ['pending', 'approved', 'rejected'] &&
+        data.created_at is string && data.created_at.size() <= 60;
+    }
+
+    function isValidAssignment(data) {
+      return data.keys().hasAll(['subject', 'title', 'deadline']) &&
+        data.keys().hasOnly(['subject', 'title', 'description', 'deadline', 'link']) &&
+        data.subject is string && data.subject.size() >= 1 && data.subject.size() <= 80 &&
+        data.title is string && data.title.size() >= 1 && data.title.size() <= 140 &&
+        (!('description' in data) || (data.description is string && data.description.size() <= 600)) &&
+        data.deadline is string && data.deadline.size() <= 60 &&
+        (!('link' in data) || (data.link is string && data.link.size() <= 500));
+    }
+
+    function isValidKasTransaction(data) {
+      return data.keys().hasAll(['occurred_on', 'type', 'amount', 'note']) &&
+        data.keys().hasOnly(['occurred_on', 'type', 'amount', 'note']) &&
+        data.occurred_on is string && data.occurred_on.size() <= 30 &&
+        data.type is string && data.type in ['masuk', 'keluar'] &&
+        data.amount is int && data.amount > 0 &&
+        data.note is string && data.note.size() >= 1 && data.note.size() <= 200;
+    }
+
+    match /admins/{adminId} {
+      allow get: if isSignedIn() && isValidId(adminId) && request.auth.uid == adminId;
+      allow list, create, update, delete: if false;
+    }
+
+    match /test/{docId} {
+      allow get: if isValidId(docId);
+      allow list, create, update, delete: if false;
+    }
+
+    match /class_info/{docId} {
+      allow get: if isValidId(docId);
+      allow list: if existing().name is string;
+      allow create: if isAdmin() && isValidId(docId) && isValidClassInfo(incoming());
+      allow update: if isAdmin() && isValidId(docId) && isValidClassInfo(incoming()) &&
+        incoming().diff(existing()).affectedKeys().hasOnly(['name', 'tagline', 'description', 'homeroom_teacher', 'school_year', 'updatedAt']);
+      allow delete: if isAdmin() && isValidId(docId);
+    }
+
+    match /students/{studentId} {
+      allow get: if isValidId(studentId) && (existing().is_published == true || isAdmin());
+      allow list: if existing().is_published == true || isAdmin();
+      allow create: if isAdmin() && isValidId(studentId) && isValidStudent(incoming());
+      allow update: if isAdmin() && isValidId(studentId) && isValidStudent(incoming()) &&
+        incoming().diff(existing()).affectedKeys().hasOnly(['roll_no', 'name', 'role', 'avatar_url', 'bio', 'tags', 'tone', 'is_published']);
+      allow delete: if isAdmin() && isValidId(studentId);
+    }
+
+    match /announcements/{announcementId} {
+      allow get: if isValidId(announcementId);
+      allow list: if existing().title is string;
+      allow create: if isAdmin() && isValidId(announcementId) && isValidAnnouncement(incoming());
+      allow update: if isValidId(announcementId) && isValidAnnouncement(incoming()) && (
+        isAdmin() ||
+        (incoming().diff(existing()).affectedKeys().hasOnly(['reactions']) &&
+         incoming().title == existing().title &&
+         incoming().body == existing().body &&
+         incoming().published_at == existing().published_at)
+      );
+      allow delete: if isAdmin() && isValidId(announcementId);
+    }
+
+    match /guestbook/{entryId} {
+      allow get: if isValidId(entryId) && (existing().status == 'approved' || isAdmin());
+      allow list: if existing().status == 'approved' || isAdmin();
+      allow create: if isValidId(entryId) && isValidGuestbook(incoming()) && (
+        incoming().status == 'pending' || isAdmin()
+      );
+      allow update: if isAdmin() && isValidId(entryId) && isValidGuestbook(incoming()) &&
+        incoming().created_at == existing().created_at &&
+        incoming().diff(existing()).affectedKeys().hasOnly(['status', 'sender_name', 'message']);
+      allow delete: if isAdmin() && isValidId(entryId);
+    }
+
+    match /assignments/{assignmentId} {
+      allow get: if isValidId(assignmentId);
+      allow list: if existing().title is string;
+      allow create: if isAdmin() && isValidId(assignmentId) && isValidAssignment(incoming());
+      allow update: if isAdmin() && isValidId(assignmentId) && isValidAssignment(incoming()) &&
+        incoming().diff(existing()).affectedKeys().hasOnly(['subject', 'title', 'description', 'deadline', 'link']);
+      allow delete: if isAdmin() && isValidId(assignmentId);
+    }
+
+    match /kas_transactions/{txId} {
+      allow get: if isValidId(txId);
+      allow list: if existing().type in ['masuk', 'keluar'];
+      allow create: if isAdmin() && isValidId(txId) && isValidKasTransaction(incoming());
+      allow update: if isAdmin() && isValidId(txId) && isValidKasTransaction(incoming()) &&
+        incoming().diff(existing()).affectedKeys().hasOnly(['occurred_on', 'type', 'amount', 'note']);
+      allow delete: if isAdmin() && isValidId(txId);
+    }
+  }
+}
