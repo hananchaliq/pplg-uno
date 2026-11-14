@@ -2,8 +2,47 @@
 
 import * as React from 'react';
 import * as THREE from 'three';
-import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { Volume2, VolumeX, Sparkles, Keyboard } from 'lucide-react';
+
+function createStudioEnvironmentScene(): {
+  scene: THREE.Scene;
+  dispose: () => void;
+} {
+  const envScene = new THREE.Scene();
+  const boxGeo = new THREE.BoxGeometry(1, 1, 1);
+  const mats: THREE.MeshBasicMaterial[] = [];
+
+  const addPanel = (
+    color: number,
+    px: number,
+    py: number,
+    pz: number,
+    sx: number,
+    sy: number,
+    sz: number
+  ) => {
+    const mat = new THREE.MeshBasicMaterial({ color });
+    mats.push(mat);
+    const mesh = new THREE.Mesh(boxGeo, mat);
+    mesh.position.set(px, py, pz);
+    mesh.scale.set(sx, sy, sz);
+    envScene.add(mesh);
+  };
+
+  // Warm key softbox, cool fill softbox, and overhead studio diffuser
+  addPanel(0xfff8ee, 6, 6, 6, 0.2, 5, 5);
+  addPanel(0xdde6ff, -6, 4, 5, 0.2, 5, 5);
+  addPanel(0xffffff, 0, 9, 0, 7, 0.2, 7);
+  addPanel(0xcfebe2, 0, -6, 3, 6, 0.2, 4);
+
+  return {
+    scene: envScene,
+    dispose: () => {
+      boxGeo.dispose();
+      mats.forEach((m) => m.dispose());
+    },
+  };
+}
 
 const KEY_LABELS = [
   'ESC', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-',
@@ -134,7 +173,10 @@ export function DevDeskHeroCanvas() {
 
     // Studio Environment Reflection
     const pmremGenerator = new THREE.PMREMGenerator(renderer);
-    scene.environment = pmremGenerator.fromScene(new RoomEnvironment(), 0.04).texture;
+    const studioEnv = createStudioEnvironmentScene();
+    const envTarget = pmremGenerator.fromScene(studioEnv.scene, 0.04);
+    scene.environment = envTarget.texture;
+    studioEnv.dispose();
     pmremGenerator.dispose();
 
     // 3-Point Warm/Cool Lighting
@@ -221,14 +263,11 @@ export function DevDeskHeroCanvas() {
 
     const keyBasePositions: Array<{ x: number; y: number; z: number }> = [];
     const keyPressOffsets = new Float32Array(totalKeys);
-    const paletteColors = [
-      new THREE.Color('#FFFFFF'),
-      new THREE.Color('#DDE0FA'),
-      new THREE.Color('#6E78E8'),
-      new THREE.Color('#3FB8A5'),
-      new THREE.Color('#F0A04B'),
-      new THREE.Color('#E0709A'),
-    ];
+    const colWhite = new THREE.Color('#FFFFFF');
+    const colLilac = new THREE.Color('#DDE0FA');
+    const colIris = new THREE.Color('#6E78E8');
+    const colMint = new THREE.Color('#3FB8A5');
+    const colAmber = new THREE.Color('#F0A04B');
 
     const dummyMat = new THREE.Matrix4();
     const dummyPos = new THREE.Vector3();
@@ -247,13 +286,13 @@ export function DevDeskHeroCanvas() {
         keyInstanced.setMatrixAt(idx, dummyMat);
 
         if (idx === 0 || idx === 35) {
-          keyInstanced.setColorAt(idx, paletteColors[4]);
+          keyInstanced.setColorAt(idx, colAmber);
         } else if (c === 0 || c === keyCols - 1) {
-          keyInstanced.setColorAt(idx, paletteColors[2]);
+          keyInstanced.setColorAt(idx, colIris);
         } else if (r === keyRows - 1 && c >= 3 && c <= 7) {
-          keyInstanced.setColorAt(idx, paletteColors[3]);
+          keyInstanced.setColorAt(idx, colMint);
         } else {
-          keyInstanced.setColorAt(idx, paletteColors[idx % 2]);
+          keyInstanced.setColorAt(idx, idx % 2 === 0 ? colWhite : colLilac);
         }
       }
     }
@@ -308,8 +347,8 @@ export function DevDeskHeroCanvas() {
     rightStick.position.set(0.26, 0.18, 0.18);
     gamepadGroup.add(rightStick);
 
-    const btnColors = [0x6e78e8, 0x3fb8a5, 0xf0a04b, 0xe0709a];
-    const btnOffsets = [
+    const btnColors: number[] = [0x6e78e8, 0x3fb8a5, 0xf0a04b, 0xe0709a];
+    const btnOffsets: Array<[number, number, number]> = [
       [0.48, 0.16, -0.2],
       [0.62, 0.16, -0.06],
       [0.48, 0.16, 0.08],
@@ -318,7 +357,7 @@ export function DevDeskHeroCanvas() {
     const btnGeo = new THREE.CylinderGeometry(0.06, 0.06, 0.06, 12);
     btnOffsets.forEach(([bx, by, bz], i) => {
       const bMat = new THREE.MeshStandardMaterial({
-        color: btnColors[i],
+        color: btnColors[i] ?? 0x6e78e8,
         roughness: 0.25,
         metalness: 0.2,
       });
@@ -405,7 +444,7 @@ export function DevDeskHeroCanvas() {
       screenCtx.font = '600 12px ui-monospace, monospace';
       screenCtx.fillText(`XII-PPLG-1 // STUDIO [${highlightKey}]`, 92, 23);
 
-      const lines = CODE_SNIPPETS[activeIdx % CODE_SNIPPETS.length] || CODE_SNIPPETS[0];
+      const lines = CODE_SNIPPETS[activeIdx % CODE_SNIPPETS.length] ?? CODE_SNIPPETS[0] ?? [];
       screenCtx.font = '500 14px ui-monospace, monospace';
       lines.forEach((line, idx) => {
         screenCtx.fillStyle = idx === 0 ? '#6E78E8' : idx === 2 ? '#3FB8A5' : '#EEF0F8';
@@ -460,12 +499,12 @@ export function DevDeskHeroCanvas() {
     orbitRing.rotation.x = Math.PI / 2;
     orbitGroup.add(orbitRing);
 
-    const tokenColors = [0x6e78e8, 0x3fb8a5, 0xf0a04b, 0xe0709a, 0x4fa3e0];
+    const tokenColors: number[] = [0x6e78e8, 0x3fb8a5, 0xf0a04b, 0xe0709a, 0x4fa3e0];
     const tokenMeshes: THREE.Mesh[] = [];
     const tokenGeo = new THREE.OctahedronGeometry(0.14, 0);
     for (let i = 0; i < 5; i++) {
       const tMat = new THREE.MeshStandardMaterial({
-        color: tokenColors[i],
+        color: tokenColors[i] ?? 0x6e78e8,
         roughness: 0.25,
         metalness: 0.5,
       });
@@ -543,10 +582,11 @@ export function DevDeskHeroCanvas() {
       }
 
       const keyHits = raycaster.intersectObject(keyInstanced, false);
-      if (keyHits.length > 0 && typeof keyHits[0].instanceId === 'number') {
-        const id = keyHits[0].instanceId;
+      const firstKeyHit = keyHits[0];
+      if (firstKeyHit && typeof firstKeyHit.instanceId === 'number') {
+        const id = firstKeyHit.instanceId;
         keyPressOffsets[id] = -0.12;
-        const label = KEY_LABELS[id] || `KEY-${id}`;
+        const label = KEY_LABELS[id] ?? `KEY-${id}`;
         setLastKeyPressed(label);
         drawCodeScreen(snippetIndexRef.current, label);
         if (soundEnabledRef.current) playKeyClickSound();
@@ -664,10 +704,12 @@ export function DevDeskHeroCanvas() {
         // Recover keycap springs
         let matrixChanged = false;
         for (let i = 0; i < totalKeys; i++) {
-          if (Math.abs(keyPressOffsets[i]) > 0.001) {
-            keyPressOffsets[i] = THREE.MathUtils.damp(keyPressOffsets[i], 0, 14, dt);
-            const base = keyBasePositions[i];
-            dummyPos.set(base.x, base.y + keyPressOffsets[i], base.z);
+          const offset = keyPressOffsets[i] ?? 0;
+          const base = keyBasePositions[i];
+          if (base && Math.abs(offset) > 0.001) {
+            const nextOffset = THREE.MathUtils.damp(offset, 0, 14, dt);
+            keyPressOffsets[i] = nextOffset;
+            dummyPos.set(base.x, base.y + nextOffset, base.z);
             dummyMat.compose(dummyPos, dummyQuat, dummyScale);
             keyInstanced.setMatrixAt(i, dummyMat);
             matrixChanged = true;
@@ -732,7 +774,7 @@ export function DevDeskHeroCanvas() {
           <text x="64" y="16" fontFamily="monospace" fontSize="9" fill="#A4AAC0">
             XII-PPLG-1 // STUDIO [{lastKeyPressed}]
           </text>
-          {(CODE_SNIPPETS[snippetIndex % CODE_SNIPPETS.length] || CODE_SNIPPETS[0]).map((line, idx) => (
+          {(CODE_SNIPPETS[snippetIndex % CODE_SNIPPETS.length] ?? CODE_SNIPPETS[0] ?? []).map((line, idx) => (
             <text
               key={idx}
               x="16"

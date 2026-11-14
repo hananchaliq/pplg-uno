@@ -31,7 +31,7 @@ export const PIN_CHART_COLORS = [
 export interface StudentRecord {
   id: string;
   roll_no: number;
-  nis?: string;
+  nis?: string | undefined;
   name: string;
   role: string;
   avatar_url: string;
@@ -39,12 +39,12 @@ export interface StudentRecord {
   tags: string[];
   links: { label: string; href: string }[];
   tone: 1 | 2 | 3 | 4 | 5;
-  drop?: number;
+  drop?: number | undefined;
   dream_title: string;
   dream_reason: string;
   dream_description: string;
-  dream_paper_color?: string;
-  capsule_message?: string;
+  dream_paper_color?: string | undefined;
+  capsule_message?: string | undefined;
   is_published: boolean;
 }
 

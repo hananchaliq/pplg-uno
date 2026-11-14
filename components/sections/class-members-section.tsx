@@ -51,9 +51,9 @@ export function ClassMembersSection({
     ];
   }, [students]);
 
-  const displayedStudents = isFiltering
+  const displayedStudents: StudentRecord[] = isFiltering
     ? filteredStudents.slice(0, 8)
-    : railSlices[railGroup] ?? railSlices[0];
+    : railSlices[railGroup] ?? railSlices[0] ?? [];
 
   // Auto-open student when triggered from Command Palette or Search
   React.useEffect(() => {
@@ -95,7 +95,7 @@ export function ClassMembersSection({
         tags: s.tags,
         links: s.links,
         tone: s.tone,
-        drop: s.drop,
+        ...(typeof s.drop === 'number' ? { drop: s.drop } : {}),
       })),
     [displayedStudents]
   );

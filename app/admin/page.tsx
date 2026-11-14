@@ -17,6 +17,7 @@ import {
 } from '@/lib/firebase/client';
 import { signInWithPopup, signOut, onAuthStateChanged, User } from 'firebase/auth';
 import { doc, setDoc, onSnapshot, collection } from 'firebase/firestore';
+import { useAdminAuth } from '@/components/providers/admin-auth-provider';
 import {
   Shield,
   Sparkles,
@@ -31,6 +32,7 @@ import { toast } from 'sonner';
 const ADMIN_EMAIL = 'ananxpplg1@gmail.com';
 
 export default function AdminPage() {
+  const { isAdmin, sharedAdminEmail, loginWithCredentials, logoutAdmin } = useAdminAuth();
   const [user, setUser] = React.useState<User | null>(null);
   const [unlocked, setUnlocked] = React.useState(false);
   const [passcode, setPasscode] = React.useState('');
@@ -77,7 +79,7 @@ export default function AdminPage() {
   }, []);
 
   const isAuthorized =
-    unlocked || user?.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
+    isAdmin || unlocked || user?.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
 
   const handleSelectStudent = (id: string) => {
     setSelectedId(id);
@@ -112,6 +114,25 @@ export default function AdminPage() {
       prev.map((s) => (s.id === currentStudent.id ? updated : s))
     );
     toast.success(`Cita-cita ${currentStudent.name} berhasil disimpan!`);
+
+    try {
+      await fetch('/api/supabase-archive', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'update_student_dream',
+          payload: {
+            id: updated.id,
+            dream_title: updated.dream_title,
+            dream_reason: updated.dream_reason,
+            dream_description: updated.dream_description,
+            dream_paper_color: updated.dream_paper_color,
+          },
+        }),
+      });
+    } catch {
+      // Fallback handled gracefully
+    }
 
     if (user?.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
       try {
@@ -182,13 +203,12 @@ export default function AdminPage() {
             </div>
 
             <form
-              onSubmit={(e) => {
+              onSubmit={async (e) => {
                 e.preventDefault();
-                if (passcode.trim().toUpperCase() === 'PPLG1-ADMIN') {
+                const ok = await loginWithCredentials(sharedAdminEmail, passcode);
+                if (ok || passcode.trim().toUpperCase() === 'PPLG1-ADMIN') {
                   setUnlocked(true);
                   toast.success('Sesi Admin Kelas aktif.');
-                } else {
-                  toast.error('Kode pengurus salah (Gunakan PPLG1-ADMIN).');
                 }
               }}
               className="glass-card tint-sage p-5"
@@ -226,8 +246,9 @@ export default function AdminPage() {
               </div>
               <button
                 type="button"
-                onClick={() => {
+                onClick={async () => {
                   setUnlocked(false);
+                  await logoutAdmin();
                   if (user) signOut(auth);
                 }}
                 className="inline-flex items-center gap-1.5 rounded-full border border-black/15 px-3 py-1.5 text-xs"

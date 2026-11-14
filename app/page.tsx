@@ -199,7 +199,7 @@ export default function HomePage() {
       dream_reason: string;
       dream_description: string;
       dream_paper_color: string;
-      capsule_message?: string;
+      capsule_message?: string | undefined;
     }
   ) => {
     const target = students.find((s) => s.id === studentId);

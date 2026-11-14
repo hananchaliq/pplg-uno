@@ -3,7 +3,8 @@ import { getAuth, GoogleAuthProvider } from 'firebase/auth';
 import { getFirestore, doc, getDocFromServer } from 'firebase/firestore';
 import firebaseConfig from '../../firebase-applet-config.json';
 
-const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+const existingApps = getApps();
+const app = existingApps[0] ?? initializeApp(firebaseConfig);
 export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
@@ -35,14 +36,14 @@ export interface FirestoreErrorInfo {
   operationType: OperationType;
   path: string | null;
   authInfo: {
-    userId?: string | null;
-    email?: string | null;
-    emailVerified?: boolean | null;
-    isAnonymous?: boolean | null;
-    tenantId?: string | null;
+    userId?: string | null | undefined;
+    email?: string | null | undefined;
+    emailVerified?: boolean | null | undefined;
+    isAnonymous?: boolean | null | undefined;
+    tenantId?: string | null | undefined;
     providerInfo?: {
-      providerId?: string | null;
-      email?: string | null;
+      providerId?: string | null | undefined;
+      email?: string | null | undefined;
     }[];
   };
 }
@@ -55,11 +56,11 @@ export function handleFirestoreError(
   const errInfo: FirestoreErrorInfo = {
     error: error instanceof Error ? error.message : String(error),
     authInfo: {
-      userId: auth.currentUser?.uid,
-      email: auth.currentUser?.email,
-      emailVerified: auth.currentUser?.emailVerified,
-      isAnonymous: auth.currentUser?.isAnonymous,
-      tenantId: auth.currentUser?.tenantId,
+      userId: auth.currentUser?.uid ?? null,
+      email: auth.currentUser?.email ?? null,
+      emailVerified: auth.currentUser?.emailVerified ?? null,
+      isAnonymous: auth.currentUser?.isAnonymous ?? null,
+      tenantId: auth.currentUser?.tenantId ?? null,
       providerInfo:
         auth.currentUser?.providerData?.map((provider) => ({
           providerId: provider.providerId,

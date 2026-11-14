@@ -20,8 +20,8 @@ import {
 
 test('INITIAL_STUDENTS contains exactly 22 students with roll_no 1..22, nis, capsule_message, and dream fields', () => {
   assert.equal(INITIAL_STUDENTS.length, 22);
-  assert.equal(INITIAL_STUDENTS[0].name, 'Siswa 01');
-  assert.equal(INITIAL_STUDENTS[21].name, 'Siswa 22');
+  assert.equal(INITIAL_STUDENTS[0]?.name, 'Siswa 01');
+  assert.equal(INITIAL_STUDENTS[21]?.name, 'Siswa 22');
   for (const s of INITIAL_STUDENTS) {
     assert.ok(s.tone >= 1 && s.tone <= 5);
     assert.ok(s.avatar_url.startsWith('data:image/svg+xml'));
@@ -36,11 +36,11 @@ test('INITIAL_STUDENTS contains exactly 22 students with roll_no 1..22, nis, cap
 test('filterStudents filters by search query, dream_title, and interest tag accurately', () => {
   const byNo = filterStudents(INITIAL_STUDENTS, '07', 'Semua');
   assert.equal(byNo.length, 1);
-  assert.equal(byNo[0].roll_no, 7);
+  assert.equal(byNo[0]?.roll_no, 7);
 
   const byDream = filterStudents(INITIAL_STUDENTS, 'Cyber Security', 'Semua');
   assert.equal(byDream.length, 1);
-  assert.equal(byDream[0].roll_no, 13);
+  assert.equal(byDream[0]?.roll_no, 13);
 
   const gameDevs = filterStudents(INITIAL_STUDENTS, '', 'Game Dev');
   assert.ok(gameDevs.length >= 3);

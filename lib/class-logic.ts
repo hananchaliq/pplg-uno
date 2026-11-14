@@ -28,7 +28,7 @@ const DAY_NAMES: Record<number, string> = {
 };
 
 function parseMinutes(hhmm: string): number {
-  const [h, m] = hhmm.split(':').map((n) => parseInt(n, 10));
+  const [h = 0, m = 0] = hhmm.split(':').map((n) => parseInt(n, 10));
   return (isNaN(h) ? 0 : h) * 60 + (isNaN(m) ? 0 : m);
 }
 
@@ -68,6 +68,7 @@ export function getActiveScheduleWIB(
 
   for (let i = 0; i < todaySlots.length; i++) {
     const slot = todaySlots[i];
+    if (!slot) continue;
     const startMin = parseMinutes(slot.start_time);
     const endMin = parseMinutes(slot.end_time);
 
@@ -282,11 +283,12 @@ export function computeDreamBoardLayout(students: StudentRecord[]): DreamNoteBoa
 
   let cursor = 0;
   for (let row = 0; row < rowCounts.length; row++) {
-    const colsInRow = rowCounts[row];
+    const colsInRow = rowCounts[row] ?? 5;
     for (let col = 0; col < colsInRow; col++) {
       if (cursor >= published.length) break;
       const st = published[cursor];
       cursor++;
+      if (!st) continue;
 
       // Normalized horizontal & vertical distribution on a 13.2 x 7.4 board surface
       const spanX = colsInRow === 6 ? 10.6 : 8.8;
@@ -308,7 +310,8 @@ export function computeDreamBoardLayout(students: StudentRecord[]): DreamNoteBoa
       const rotZRad = (deg * Math.PI) / 180;
 
       const paperColor = getSeededPaperColor(st.roll_no, st.dream_paper_color);
-      const pinColorHex = PIN_CHART_COLORS[(st.roll_no - 1) % PIN_CHART_COLORS.length];
+      const pinColorHex =
+        PIN_CHART_COLORS[(st.roll_no - 1) % PIN_CHART_COLORS.length] ?? '#6E78E8';
 
       poses.push({
         studentId: st.id,
