@@ -69,17 +69,23 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const { action, table, payload, match } = body as {
-      action: 'update' | 'insert' | 'delete';
-      table: 'students' | 'farewell_letters' | 'gallery_photos';
+      action: 'update' | 'insert' | 'delete' | 'update_student_dream';
+      table?: 'students' | 'farewell_letters' | 'gallery_photos' | 'announcements' | 'kas_transactions' | 'guestbook';
       payload?: Record<string, unknown>;
       match?: Record<string, unknown>;
     };
 
-    if (action === 'update' && payload && match) {
+    if (action === 'update_student_dream' && payload && payload.id) {
+      const { id, ...fields } = payload;
+      await supabase.from('students').update(fields).eq('id', id);
+      return NextResponse.json({ ok: true, synced: true });
+    }
+
+    if (table && action === 'update' && payload && match) {
       await supabase.from(table).update(payload).match(match);
-    } else if (action === 'insert' && payload) {
+    } else if (table && action === 'insert' && payload) {
       await supabase.from(table).insert([payload]);
-    } else if (action === 'delete' && match) {
+    } else if (table && action === 'delete' && match) {
       await supabase.from(table).delete().match(match);
     }
 

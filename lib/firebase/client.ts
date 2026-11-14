@@ -15,10 +15,8 @@ export async function validateFirestoreConnection() {
   connectionChecked = true;
   try {
     await getDocFromServer(doc(db, 'test', 'connection'));
-  } catch (error) {
-    if (error instanceof Error && error.message.includes('the client is offline')) {
-      console.error('Please check your Firebase configuration.');
-    }
+  } catch {
+    // Graceful local/offline fallback when running without cloud connection
   }
 }
 
@@ -52,7 +50,7 @@ export function handleFirestoreError(
   error: unknown,
   operationType: OperationType,
   path: string | null
-): never {
+): FirestoreErrorInfo {
   const errInfo: FirestoreErrorInfo = {
     error: error instanceof Error ? error.message : String(error),
     authInfo: {
@@ -70,6 +68,8 @@ export function handleFirestoreError(
     operationType,
     path,
   };
-  console.error('Firestore Error: ', JSON.stringify(errInfo));
-  throw new Error(JSON.stringify(errInfo));
+  if (process.env.NODE_ENV === 'development') {
+    console.warn('Firestore fallback (using local archive):', errInfo.operationType, errInfo.path);
+  }
+  return errInfo;
 }

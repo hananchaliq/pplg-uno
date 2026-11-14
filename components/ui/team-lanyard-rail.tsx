@@ -24,7 +24,7 @@ export interface LanyardMember {
    links?: LanyardLink[];
    /** Team colour: chart token 1–5 for the ribbon and the badge band. */
    tone?: 1 | 2 | 3 | 4 | 5;
-   /** Extra lanyard length in pixels at a 124 px badge; it scales with the badge. */
+   /** Extra lanyard length in pixels at a 110 px badge; it scales with the badge. */
    drop?: number;
 }
 
@@ -58,16 +58,17 @@ export interface TeamLanyardRailProps extends React.ComponentProps<"section"> {
    labels?: TeamLanyardRailLabels;
 }
 
-const RATIO = 96 / 62;
-const MAX_W = 124;
-const MIN_RAIL_W = 100;
-const EM = 11.2;
-const RAIL_PITCH_MIN = 1.16;
-const RAIL_PITCH_MAX = 1.62;
-const CAROUSEL_PITCH = 1.2;
-const GAP = 0.07;
+// Compact & balanced geometry constants
+const RATIO = 92 / 62;
+const MAX_W = 110;
+const MIN_RAIL_W = 86;
+const EM = 11;
+const RAIL_PITCH_MIN = 1.12;
+const RAIL_PITCH_MAX = 1.48;
+const CAROUSEL_PITCH = 1.16;
+const GAP = 0.06;
 const PERSPECTIVE = 900;
-const MAX_STRETCH = 64;
+const MAX_STRETCH = 52;
 const FIRST_DELAY = 1100;
 const FLIP_DELAY = 700;
 const SWING_K = 28;
@@ -75,13 +76,13 @@ const SWING_DAMP = 2.2;
 const LAG = 0.12;
 const REEL_K = 220;
 const REEL_ZETA = 0.5;
-const REST_Y = [9, -10, 7, -8, 10, -7, 8, -9];
-const REST_Z = [-1.6, 1.2, -2, 1.5, -1, 1.8, -1.3, 2];
-const DROPS = [6, 20, 0, 13, 22, 4, 16, 9];
+const REST_Y = [7, -8, 6, -6, 8, -6, 6, -7];
+const REST_Z = [-1.2, 1.0, -1.5, 1.1, -0.8, 1.4, -1.0, 1.5];
+const DROPS = [4, 12, 0, 8, 14, 2, 10, 6];
 const TONES = ["text-chart-1", "text-chart-2", "text-chart-3", "text-chart-4", "text-chart-5"] as const;
 const DEFAULT_LABELS: TeamLanyardRailLabels = {
-   flip: "Click or press Enter to flip the badge",
-   back: "Click again or press Esc to turn it back",
+   flip: "Click or press Enter to flip badge",
+   back: "Click again or press Esc to return",
    show: "Show",
 };
 const METAL = "linear-gradient(to right, color-mix(in oklab, var(--color-muted-foreground) 70%, black), color-mix(in oklab, var(--color-muted-foreground) 22%, white) 38%, var(--color-muted-foreground) 70%, color-mix(in oklab, var(--color-muted-foreground) 65%, black))";
@@ -155,18 +156,18 @@ function soft(distance: number, max: number) {
 function geometry(W: number, items: LanyardMember[]) {
    const u = W / MAX_W;
    const H = W * RATIO;
-   const railR = Math.max(3, 4.2 * u);
-   const railY = 14 + railR;
-   const ring = 9 * u;
-   const pivotY = railY + ring * 0.8;
-   const strapW = Math.max(8, 11 * u);
-   const crimp = 6 * u;
-   const reel = 21 * u;
-   const cordRest = 12 * u;
-   const clipH = 13 * u;
-   const clipW = 30 * u;
-   const base = 56 * u;
-   const straps = items.map((item, i) => base + Math.max(0, item.drop ?? DROPS[i % DROPS.length] ?? 0) * u);
+   const railR = Math.max(2.5, 3.6 * u);
+   const railY = 8 + railR;
+   const ring = 7.5 * u;
+   const pivotY = railY + ring * 0.78;
+   const strapW = Math.max(7, 9.5 * u);
+   const crimp = 5 * u;
+   const reel = 18 * u;
+   const cordRest = 9 * u;
+   const clipH = 11 * u;
+   const clipW = 26 * u;
+   const base = 36 * u;
+   const straps = items.map((item, i) => base + Math.max(0, Math.min(18, item.drop ?? DROPS[i % DROPS.length] ?? 0)) * u);
    const reelTops = straps.map(len => pivotY + len + crimp * 0.6);
    const clipTops = reelTops.map(top => top + reel * 0.82 + cordRest);
    const cardTops = clipTops.map(top => top + clipH * 0.62);
@@ -194,20 +195,21 @@ function geometry(W: number, items: LanyardMember[]) {
       pendulum,
       swingK: pendulum.map(len => (SWING_K * restLength) / len),
       couple: pendulum.map(len => (0.25 * 57.3) / len),
-      maxStretch: Math.round(MAX_STRETCH * Math.min(1, W / 118)),
-      height: Math.ceil(bottom + 16 * u + 8),
+      maxStretch: Math.round(MAX_STRETCH * Math.min(1, W / 104)),
+      height: Math.ceil(bottom + 12 * u + 4),
    };
 }
 
 function layoutTargets(width: number, W: number, carousel: boolean, center: number | null, count: number) {
    if (!carousel) {
-      const pitch = clamp((width - 40 - W * 0.6) / Math.max(1, count), W * RAIL_PITCH_MIN, W * RAIL_PITCH_MAX);
+      const pad = width < 640 ? 24 : 36;
+      const pitch = clamp((width - pad - W * 0.5) / Math.max(1, count), W * RAIL_PITCH_MIN, W * RAIL_PITCH_MAX);
       const start = width / 2 - (pitch * (count - 1)) / 2;
       return { xs: Array.from({ length: count }, (_, i) => start + i * pitch), total: 0 };
    }
    const pitch = W * CAROUSEL_PITCH;
    const total = pitch * count;
-   const cyclic = count > 2 && total >= width + W * 2;
+   const cyclic = count > 2 && total >= width + W * 1.6;
    const c = center ?? 0;
    const xs = Array.from({ length: count }, (_, i) => {
       let k = i - c;
@@ -301,7 +303,7 @@ function minGap(s: Sim, W: number, a: number, b: number) {
 }
 
 function stops(s: Sim, W: number, width: number, count: number) {
-   return [W * 0.32 + badgeWidth(s, W, 0) / 2, width - W * 0.32 - badgeWidth(s, W, count - 1) / 2] as const;
+   return [W * 0.25 + badgeWidth(s, W, 0) / 2, width - W * 0.25 - badgeWidth(s, W, count - 1) / 2] as const;
 }
 
 type EdgeGeometry = { W: number; H: number; pivotY: number; clipTops: number[]; cardTops: number[] };
@@ -320,37 +322,37 @@ function cardEdge(s: Sim, g: EdgeGeometry, i: number, side: 1 | -1) {
 function LinkIcon({ label }: { label: string }) {
    if (/mail|@/i.test(label)) {
       return (
-         <svg aria-hidden="true" viewBox="0 0 16 16" className="size-[1.05em] shrink-0" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round">
+         <svg aria-hidden="true" viewBox="0 0 16 16" className="size-[1em] shrink-0" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round">
             <rect x="2" y="3.5" width="12" height="9" rx="1.6" />
             <path d="M2.6 4.6 8 8.9l5.4-4.3" />
          </svg>
       );
    }
    return (
-      <svg aria-hidden="true" viewBox="0 0 16 16" className="size-[1.05em] shrink-0" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+      <svg aria-hidden="true" viewBox="0 0 16 16" className="size-[1em] shrink-0" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
          <path d="M5 11 11 5M6.2 5H11v4.8" />
       </svg>
    );
 }
 
-const LINK_ROW = "inline-flex items-center gap-[0.3em] rounded-[0.4em] px-[0.3em] py-[0.14em] text-[0.68em] font-medium leading-tight";
+const LINK_ROW = "inline-flex items-center gap-[0.25em] rounded-[0.35em] px-[0.25em] py-[0.12em] text-[0.64em] font-medium leading-tight";
 
 function Band({ tone, tall }: { tone: string; tall?: boolean }) {
    return (
-      <span aria-hidden="true" className={`absolute inset-x-0 top-0 block ${tone} ${tall ? "h-[4.3em]" : "h-[2.15em]"}`} style={{ background: "repeating-linear-gradient(135deg, transparent 0 0.45em, color-mix(in oklab, white 10%, transparent) 0.45em 0.56em), linear-gradient(180deg, color-mix(in oklab, currentColor 80%, white), currentColor 72%, color-mix(in oklab, currentColor 86%, black))" }}>
+      <span aria-hidden="true" className={`absolute inset-x-0 top-0 block ${tone} ${tall ? "h-[3.9em]" : "h-[1.95em]"}`} style={{ background: "repeating-linear-gradient(135deg, transparent 0 0.45em, color-mix(in oklab, white 10%, transparent) 0.45em 0.56em), linear-gradient(180deg, color-mix(in oklab, currentColor 80%, white), currentColor 72%, color-mix(in oklab, currentColor 86%, black))" }}>
          <span className="absolute inset-x-0 bottom-0 h-px bg-black/15" />
       </span>
    );
 }
 
 function Hole() {
-   return <span aria-hidden="true" className="absolute left-1/2 top-[0.72em] block h-[0.56em] w-[2.7em] -translate-x-1/2 rounded-full bg-background" style={{ boxShadow: "inset 0 0.09em 0.2em color-mix(in oklab, black 55%, transparent), 0 0.05em 0 color-mix(in oklab, white 30%, transparent)" }} />;
+   return <span aria-hidden="true" className="absolute left-1/2 top-[0.64em] block h-[0.48em] w-[2.4em] -translate-x-1/2 rounded-full bg-background" style={{ boxShadow: "inset 0 0.08em 0.18em color-mix(in oklab, black 55%, transparent), 0 0.05em 0 color-mix(in oklab, white 30%, transparent)" }} />;
 }
 
 function Finish() {
    return (
       <>
-         <span aria-hidden="true" className="pointer-events-none absolute inset-y-0 -left-1/2 block w-[200%] opacity-70 dark:opacity-35" style={{ background: "linear-gradient(100deg, transparent 40%, color-mix(in oklab, white 26%, transparent) 48%, color-mix(in oklab, white 8%, transparent) 52%, transparent 58%)", transform: "translateX(var(--gx, 0%))" }} />
+         <span aria-hidden="true" className="pointer-events-none absolute inset-y-0 -left-1/2 block w-[200%] opacity-65 dark:opacity-30" style={{ background: "linear-gradient(100deg, transparent 40%, color-mix(in oklab, white 26%, transparent) 48%, color-mix(in oklab, white 8%, transparent) 52%, transparent 58%)", transform: "translateX(var(--gx, 0%))" }} />
          <span aria-hidden="true" className="pointer-events-none absolute inset-0 block bg-black" style={{ opacity: "var(--shade, 0)" }} />
       </>
    );
@@ -375,66 +377,73 @@ const BadgeFaces = React.memo(function BadgeFaces({ item, tone }: { item: Lanyar
    const links = (item.links ?? []).slice(0, 3);
    return (
       <>
-         <span data-face="front" className="absolute inset-0 flex flex-col items-center overflow-hidden rounded-[0.85em] border border-border bg-card px-[0.8em] pb-[0.7em] text-card-foreground [backface-visibility:hidden]" style={{ transform: "translateZ(1px)" }}>
+         <span data-face="front" className="absolute inset-0 flex flex-col items-center overflow-hidden rounded-[0.8em] border border-border/80 bg-card px-[0.72em] pb-[0.6em] text-card-foreground [backface-visibility:hidden]" style={{ transform: "translateZ(1px)" }}>
             <Band tone={tone} tall />
             <Hole />
-            <span className="relative mt-[2.05em] block size-[5.3em] shrink-0 rounded-full bg-card p-[0.2em]" style={{ boxShadow: "0 0.15em 0.5em color-mix(in oklab, var(--color-foreground) 22%, transparent)" }}>
+            <span className="relative mt-[1.8em] block size-[4.8em] shrink-0 rounded-full bg-card p-[0.18em]" style={{ boxShadow: "0 0.14em 0.45em color-mix(in oklab, var(--color-foreground) 20%, transparent)" }}>
                <span className="relative block size-full overflow-hidden rounded-full bg-muted">
                   <Silhouette />
                   {!failed && <img src={item.image} alt="" draggable={false} decoding="async" onError={() => setFailed(true)} className="pointer-events-none absolute inset-0 block size-full select-none object-cover" />}
                </span>
             </span>
-            <span className="mt-[0.55em] block w-full truncate text-center text-[1.08em] font-semibold leading-tight tracking-tight">{item.name}</span>
-            <span className="mt-[0.15em] block w-full truncate text-center text-[0.8em] leading-snug text-muted-foreground">{item.role}</span>
-            {item.team && <span className="mt-[0.5em] block w-full truncate text-center text-[0.6em] font-medium uppercase tracking-[0.2em] text-muted-foreground">{item.team}</span>}
-            <span className="mt-auto block w-full border-t border-dashed border-border pt-[0.5em]">
-               <svg aria-hidden="true" viewBox={`0 0 ${bars.width} 20`} preserveAspectRatio="none" className="block h-[1.6em] w-full text-foreground/80">
+            <span className="mt-[0.5em] block w-full truncate text-center text-[1.02em] font-semibold leading-tight tracking-tight">{item.name}</span>
+            <span className="mt-[0.12em] block w-full truncate text-center text-[0.75em] leading-snug text-muted-foreground">{item.role}</span>
+            {item.team && <span className="mt-[0.38em] block w-full truncate text-center text-[0.56em] font-medium uppercase tracking-[0.18em] text-muted-foreground/85">{item.team}</span>}
+            <span className="mt-auto block w-full border-t border-dashed border-border/75 pt-[0.42em]">
+               <svg aria-hidden="true" viewBox={`0 0 ${bars.width} 20`} preserveAspectRatio="none" className="block h-[1.4em] w-full text-foreground/80">
                   <path d={bars.d} fill="currentColor" />
                </svg>
-               <span className="mt-[0.25em] block text-center font-mono text-[0.52em] tracking-[0.32em] text-muted-foreground">{digits}</span>
+               <span className="mt-[0.2em] block text-center font-mono text-[0.48em] tracking-[0.3em] text-muted-foreground">{digits}</span>
             </span>
             <Finish />
          </span>
-         <span data-face="back" className="absolute inset-0 overflow-hidden rounded-[0.85em] border border-border bg-card text-card-foreground [backface-visibility:hidden]" style={{ transform: "rotateY(180deg) translateZ(1px)" }}>
+
+         <span data-face="back" className="absolute inset-0 flex flex-col justify-between overflow-hidden rounded-[0.8em] border border-border/80 bg-card px-[0.78em] pb-[0.7em] pt-[2.3em] text-card-foreground [backface-visibility:hidden]" style={{ transform: "rotateY(180deg) translateZ(1px)" }}>
             <Band tone={tone} />
             <Hole />
-            <span className="absolute inset-x-[0.85em] top-[2.6em] block">
-               <span className="block truncate text-[0.95em] font-semibold leading-tight">{item.name}</span>
-               <span className="block truncate text-[0.72em] leading-snug text-muted-foreground">{item.role}</span>
-            </span>
-            {item.bio && (
-               <span className="absolute inset-x-[0.85em] top-[5.1em] block">
-                  <span data-bio className="line-clamp-4 block text-[0.74em] leading-[1.4]">
+            <span className="flex flex-col gap-[0.42em] overflow-hidden">
+               <span className="block">
+                  <span className="block truncate text-[0.9em] font-semibold leading-tight">{item.name}</span>
+                  <span className="block truncate text-[0.68em] leading-snug text-muted-foreground">{item.role}</span>
+               </span>
+               {item.bio && (
+                  <span data-bio className="line-clamp-3 block text-[0.68em] leading-[1.35] text-card-foreground/90">
                      {item.bio}
                   </span>
-               </span>
-            )}
-            {tags.length > 0 && (
-               <span className="absolute inset-x-[0.85em] top-[9.8em] flex flex-wrap gap-[0.28em]">
-                  {tags.map(tag => (
-                     <span key={tag} className="block rounded-full border border-border bg-muted/60 px-[0.6em] py-[0.16em] text-[0.6em] leading-tight text-muted-foreground">
-                        {tag}
-                     </span>
-                  ))}
-               </span>
-            )}
-            {links.length > 0 && (
-               <span aria-hidden="true" className="absolute bottom-[0.75em] left-[0.6em] flex flex-col items-start gap-[0.1em] transition-opacity duration-150 motion-reduce:transition-none" style={{ opacity: "var(--drawn, 1)" }}>
-                  {links.map(link => (
-                     <span key={link.label} className={LINK_ROW}>
-                        <LinkIcon label={link.label} />
-                        {link.label}
-                     </span>
-                  ))}
-               </span>
-            )}
-            <svg aria-hidden="true" viewBox="-1 -1 23 23" className="absolute bottom-[0.8em] right-[0.8em] size-[3.9em] text-foreground">
-               <path d={qr} fill="currentColor" />
-            </svg>
+               )}
+               {tags.length > 0 && (
+                  <span className="flex flex-wrap gap-[0.24em] pt-[0.1em]">
+                     {tags.map(tag => (
+                        <span key={tag} className="block max-w-full truncate rounded-full border border-border/80 bg-muted/50 px-[0.52em] py-[0.12em] text-[0.56em] leading-tight text-muted-foreground">
+                           {tag}
+                        </span>
+                     ))}
+                  </span>
+               )}
+            </span>
+
+            <span className="mt-auto flex items-end justify-between gap-[0.3em] pt-[0.35em]">
+               {links.length > 0 ? (
+                  <span aria-hidden="true" className="flex flex-col items-start gap-[0.08em] transition-opacity duration-150 motion-reduce:transition-none" style={{ opacity: "var(--drawn, 1)" }}>
+                     {links.map(link => (
+                        <span key={link.label} className={LINK_ROW}>
+                           <LinkIcon label={link.label} />
+                           <span className="max-w-[5.2em] truncate">{link.label}</span>
+                        </span>
+                     ))}
+                  </span>
+               ) : (
+                  <span />
+               )}
+               <svg aria-hidden="true" viewBox="-1 -1 23 23" className="size-[3.4em] shrink-0 text-foreground/90">
+                  <path d={qr} fill="currentColor" />
+               </svg>
+            </span>
             <Finish />
          </span>
+
          {[0, 1].map(side => (
-            <span key={side} aria-hidden="true" className="absolute inset-y-[0.85em] block w-[2px]" style={{ [side ? "right" : "left"]: 0, transform: `translateX(${side ? 1 : -1}px) rotateY(90deg)`, background: "color-mix(in oklab, var(--color-foreground) 30%, var(--color-card))" }} />
+            <span key={side} aria-hidden="true" className="absolute inset-y-[0.8em] block w-[2px]" style={{ [side ? "right" : "left"]: 0, transform: `translateX(${side ? 1 : -1}px) rotateY(90deg)`, background: "color-mix(in oklab, var(--color-foreground) 30%, var(--color-card))" }} />
          ))}
       </>
    );
@@ -484,7 +493,6 @@ export function TeamLanyardRail({ items, eyebrow, heading, caption, action, auto
       const L = live.current;
       if (L.flipped === index) return;
       const old = L.flipped;
-      // the contact links unmount with the back face: keep keyboard focus on the badge instead of dropping it to <body>
       if (old !== null && linkLayers.current[old]?.contains(document.activeElement)) buttons.current[old]?.focus({ preventScroll: true });
       L.flipped = index;
       if (!L.flippedControlled) setInnerFlipped(index);
@@ -508,9 +516,10 @@ export function TeamLanyardRail({ items, eyebrow, heading, caption, action, auto
       if (!stage) return;
       const measure = (width: number) => {
          const n = Math.max(1, live.current.count);
-         const railW = Math.min(MAX_W, (width - 40) / (n * RAIL_PITCH_MIN + 0.4));
+         const pad = width < 640 ? 20 : 36;
+         const railW = Math.min(MAX_W, (width - pad) / (n * RAIL_PITCH_MIN + 0.35));
          const carousel = railW < MIN_RAIL_W;
-         const W = Math.round((carousel ? clamp(width * 0.3, 96, 118) : railW) * 4) / 4;
+         const W = Math.round((carousel ? clamp(width * 0.27, 84, 102) : railW) * 4) / 4;
          setSize(old => (Math.abs(old.width - width) < 0.5 && old.carousel === carousel && old.W === W ? old : { width, W, carousel }));
       };
       measure(stage.clientWidth);
@@ -550,11 +559,10 @@ export function TeamLanyardRail({ items, eyebrow, heading, caption, action, auto
       }
       const shadow = shadows.current[i];
       if (shadow) {
-         shadow.style.transform = `translate3d(${(g.W * 0.045 + lift * 3 * g.u).toFixed(2)}px,${(g.H * 0.03 + lift * 7 * g.u).toFixed(2)}px,0) scale(${(Math.max(0.12, facing) * (1 + 0.03 * lift + 0.05 * pop)).toFixed(3)},${(1 + 0.03 * lift + 0.05 * pop).toFixed(3)})`;
-         shadow.style.opacity = (0.72 + 0.28 * lift).toFixed(3);
+         shadow.style.transform = `translate3d(${(g.W * 0.045 + lift * 3 * g.u).toFixed(2)}px,${(g.H * 0.03 + lift * 6 * g.u).toFixed(2)}px,0) scale(${(Math.max(0.12, facing) * (1 + 0.03 * lift + 0.05 * pop)).toFixed(3)},${(1 + 0.03 * lift + 0.05 * pop).toFixed(3)})`;
+         shadow.style.opacity = (0.7 + 0.28 * lift).toFixed(3);
       }
       const layer = linkLayers.current[i];
-      // shown from 9° off the back, kept through the spring overshoot (±24°) so focused links never blink out
       const on = !!layer && Math.abs(ry - 180) < (layer.style.visibility === "visible" ? 24 : 9);
       if (layer) {
          layer.style.opacity = on ? "1" : "0";
@@ -572,7 +580,6 @@ export function TeamLanyardRail({ items, eyebrow, heading, caption, action, auto
          const { width, carousel } = L.size;
          const dt = s.last ? Math.min(0.1, (now - s.last) / 1000) : 1 / 60;
          s.last = now;
-         // sub-steps of at most ~6 ms keep the springs accurate when frames arrive slowly (60 fps → 3)
          const sub = Math.max(3, Math.ceil(dt / 0.006));
          const h = dt / sub;
          let busy = false;
@@ -826,12 +833,12 @@ export function TeamLanyardRail({ items, eyebrow, heading, caption, action, auto
    const ready = size.width > 0;
    React.useEffect(() => {
       if (!ready || reduced || swayed.current) return;
-      const timers = Array.from({ length: count }, (_, i) => window.setTimeout(() => impulse(i, (i % 2 ? -1 : 1) * (30 - (i % 4) * 3)), 60 + i * 70));
+      const timers = Array.from({ length: count }, (_, i) => window.setTimeout(() => impulse(i, (i % 2 ? -1 : 1) * (24 - (i % 4) * 3)), 50 + i * 55));
       const done = window.setTimeout(
          () => {
             swayed.current = true;
          },
-         80 + count * 70
+         70 + count * 55
       );
       return () => {
          timers.forEach(t => window.clearTimeout(t));
@@ -853,20 +860,20 @@ export function TeamLanyardRail({ items, eyebrow, heading, caption, action, auto
       const wrap = (i: number) => (live.current.cyclic ? ((i % count) + count) % count : i);
       if (old.active !== active) {
          if (active !== null) {
-            impulse(wrap(active - 1), 16);
-            impulse(wrap(active + 1), -16);
+            impulse(wrap(active - 1), 14);
+            impulse(wrap(active + 1), -14);
          }
          if (old.active !== null) {
-            impulse(wrap(old.active - 1), -6);
-            impulse(wrap(old.active + 1), 6);
+            impulse(wrap(old.active - 1), -5);
+            impulse(wrap(old.active + 1), 5);
          }
       }
       if (old.flipped !== flipped) {
          if (flipped !== null) {
-            impulse(flipped, flipped % 2 ? 9 : -9);
-            tug(flipped, 70);
+            impulse(flipped, flipped % 2 ? 8 : -8);
+            tug(flipped, 60);
          }
-         if (old.flipped !== null) tug(old.flipped, 40);
+         if (old.flipped !== null) tug(old.flipped, 35);
       }
       previous.current = { active, flipped };
    }, [active, flipped, count, impulse, tug]);
@@ -987,7 +994,7 @@ export function TeamLanyardRail({ items, eyebrow, heading, caption, action, auto
             const i = p.index;
             s.st[i] = soft(Math.max(0, dy), L.geo.maxStretch);
             s.vst[i] = 0;
-            const angle = clamp((-Math.atan2(dx, (L.geo.pendulum[i] ?? 200) + (s.st[i] ?? 0)) * 180) / Math.PI, -16, 16);
+            const angle = clamp((-Math.atan2(dx, (L.geo.pendulum[i] ?? 180) + (s.st[i] ?? 0)) * 180) / Math.PI, -16, 16);
             s.vsw[i] = ((angle - (s.sw[i] ?? 0)) / elapsed) * 1000 * 0.5;
             s.sw[i] = angle;
             if (L.reduced) paint(i);
@@ -1017,7 +1024,7 @@ export function TeamLanyardRail({ items, eyebrow, heading, caption, action, auto
          }
          return;
       }
-      if (hit !== null && hit !== p.hoverHit) impulse(hit, clamp(-hoverV * 22, -24, 24));
+      if (hit !== null && hit !== p.hoverHit) impulse(hit, clamp(-hoverV * 20, -22, 22));
       p.hoverHit = hit ?? -1;
       if (hit !== null && hit !== L.active) {
          stop();
@@ -1064,7 +1071,7 @@ export function TeamLanyardRail({ items, eyebrow, heading, caption, action, auto
          const dx = event.clientX - p.x;
          const n = L.count;
          const current = L.active ?? L.carouselIndex;
-         const by = Math.abs(dx) > 40 || Math.abs(p.v) > 0.45 ? (dx < 0 ? 1 : -1) : 0;
+         const by = Math.abs(dx) > 32 || Math.abs(p.v) > 0.4 ? (dx < 0 ? 1 : -1) : 0;
          pointer.current.swipe = 0;
          const next = L.cyclic ? (((current + by) % n) + n) % n : clamp(current + by, 0, n - 1);
          if (next === L.active) retarget();
@@ -1092,7 +1099,7 @@ export function TeamLanyardRail({ items, eyebrow, heading, caption, action, auto
          if (badge === undefined) return;
          event.preventDefault();
          stop();
-         tug(Number(badge), 300);
+         tug(Number(badge), 260);
          return;
       }
       if (!["ArrowRight", "ArrowLeft", "Home", "End"].includes(event.key)) return;
@@ -1117,12 +1124,13 @@ export function TeamLanyardRail({ items, eyebrow, heading, caption, action, auto
 
    return (
       <section {...rest} data-slot="team-lanyard-rail" data-mode={size.carousel ? "carousel" : "rail"} data-active={active ?? ""} data-flipped={flipped ?? ""} className={`relative isolate w-full overflow-hidden bg-background text-foreground ${className ?? ""}`}>
-         <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10" style={{ background: "radial-gradient(closest-side at 50% 46%, color-mix(in oklab, var(--color-foreground) 7%, transparent), transparent)" }} />
-         <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10" style={{ background: "radial-gradient(color-mix(in oklab, var(--color-foreground) 8%, transparent) 1px, transparent 1.3px) 0 0 / 18px 18px", maskImage: "radial-gradient(closest-side at 50% 50%, black 55%, transparent)", WebkitMaskImage: "radial-gradient(closest-side at 50% 50%, black 55%, transparent)" }} />
+         <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10" style={{ background: "radial-gradient(closest-side at 50% 46%, color-mix(in oklab, var(--color-foreground) 6%, transparent), transparent)" }} />
+         <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10" style={{ background: "radial-gradient(color-mix(in oklab, var(--color-foreground) 7%, transparent) 1px, transparent 1.3px) 0 0 / 16px 16px", maskImage: "radial-gradient(closest-side at 50% 50%, black 50%, transparent)", WebkitMaskImage: "radial-gradient(closest-side at 50% 50%, black 50%, transparent)" }} />
+
          {(eyebrow || heading) && (
-            <header className="relative z-10 flex flex-col items-center gap-2 px-6 pt-7 text-center">
-               {eyebrow && <p className="text-[11px] font-medium uppercase tracking-[0.28em] text-muted-foreground">{eyebrow}</p>}
-               {heading && <h2 className="text-balance text-2xl font-medium tracking-tight md:text-3xl">{heading}</h2>}
+            <header className="relative z-10 flex flex-col items-center gap-1 px-4 pt-4 text-center sm:px-6 sm:pt-5">
+               {eyebrow && <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-muted-foreground">{eyebrow}</p>}
+               {heading && <h2 className="text-balance text-xl font-semibold tracking-tight sm:text-2xl">{heading}</h2>}
             </header>
          )}
 
@@ -1132,7 +1140,7 @@ export function TeamLanyardRail({ items, eyebrow, heading, caption, action, auto
             role="group"
             aria-label={heading ?? "Team"}
             aria-roledescription="lanyard rail"
-            className="relative mt-4 w-full touch-pan-y select-none"
+            className="relative mt-2 w-full touch-pan-y select-none"
             style={{ height: g.height, overflowX: "clip" }}
             onPointerMove={onPointerMove}
             onPointerDown={onPointerDown}
@@ -1144,14 +1152,14 @@ export function TeamLanyardRail({ items, eyebrow, heading, caption, action, auto
             }}
             onKeyDown={onKeyDown}>
             <div aria-hidden="true" data-rail className="pointer-events-none absolute inset-x-0 z-0" style={{ top: g.railY - g.railR, height: g.railR * 2 }}>
-               <div className="absolute inset-x-0 h-3 rounded-full bg-foreground/10 blur-[5px]" style={{ top: g.railR * 2 + 2 }} />
+               <div className="absolute inset-x-0 h-2.5 rounded-full bg-foreground/10 blur-[4px]" style={{ top: g.railR * 2 + 1 }} />
                <div className="absolute inset-0 rounded-full" style={{ background: "linear-gradient(to bottom, color-mix(in oklab, var(--color-muted-foreground) 35%, white) 0%, white 20%, color-mix(in oklab, var(--color-muted-foreground) 70%, white) 40%, var(--color-muted-foreground) 64%, color-mix(in oklab, var(--color-muted-foreground) 55%, black) 100%)", boxShadow: "0 1px 0 color-mix(in oklab, var(--color-foreground) 18%, transparent)" }} />
                <div className="absolute inset-0 rounded-full opacity-40 mix-blend-overlay" style={{ background: "repeating-linear-gradient(90deg, transparent 0 2px, color-mix(in oklab, white 40%, transparent) 2px 3px, transparent 3px 7px)" }} />
                {!size.carousel &&
                   [0, 1].map(side => (
-                     <div key={side} className="absolute top-1/2 h-7 w-4 -translate-y-1/2 rounded-[3px]" style={{ [side ? "right" : "left"]: 6, background: "linear-gradient(to right, color-mix(in oklab, var(--color-muted-foreground) 60%, white), var(--color-muted-foreground) 55%, color-mix(in oklab, var(--color-muted-foreground) 60%, black))", boxShadow: "0 3px 6px color-mix(in oklab, var(--color-foreground) 18%, transparent)" }}>
-                        <span className="absolute left-1/2 top-1 size-1 -translate-x-1/2 rounded-full bg-foreground/35" />
-                        <span className="absolute bottom-1 left-1/2 size-1 -translate-x-1/2 rounded-full bg-foreground/35" />
+                     <div key={side} className="absolute top-1/2 h-5 w-3 -translate-y-1/2 rounded-[2.5px]" style={{ [side ? "right" : "left"]: 6, background: "linear-gradient(to right, color-mix(in oklab, var(--color-muted-foreground) 60%, white), var(--color-muted-foreground) 55%, color-mix(in oklab, var(--color-muted-foreground) 60%, black))", boxShadow: "0 2px 4px color-mix(in oklab, var(--color-foreground) 16%, transparent)" }}>
+                        <span className="absolute left-1/2 top-1 size-0.5 -translate-x-1/2 rounded-full bg-foreground/35" />
+                        <span className="absolute bottom-1 left-1/2 size-0.5 -translate-x-1/2 rounded-full bg-foreground/35" />
                      </div>
                   ))}
             </div>
@@ -1174,7 +1182,7 @@ export function TeamLanyardRail({ items, eyebrow, heading, caption, action, auto
                      data-lanyard={i}
                      className={`pointer-events-none absolute left-0 top-0 ${tone}`}
                      style={{ width: W, height: g.height, zIndex: isFlipped ? 40 : isActive ? 30 : 10 + i, transform: `translate3d(${((sim.current.x[i] ?? 0) - W / 2).toFixed(2)}px,0,0)` }}>
-                     <span aria-hidden="true" className="absolute block rounded-full" style={{ left: W / 2 - 4.5 * g.u, top: g.railY - g.ring, width: 9 * g.u, height: g.ring * 2, border: `${Math.max(1.6, 2.2 * g.u).toFixed(2)}px solid color-mix(in oklab, var(--color-muted-foreground) 45%, white)`, boxShadow: "inset 1px 0 0 color-mix(in oklab, black 25%, transparent), 1px 1px 2px color-mix(in oklab, black 20%, transparent)" }} />
+                     <span aria-hidden="true" className="absolute block rounded-full" style={{ left: W / 2 - 4 * g.u, top: g.railY - g.ring, width: 8 * g.u, height: g.ring * 2, border: `${Math.max(1.4, 2 * g.u).toFixed(2)}px solid color-mix(in oklab, var(--color-muted-foreground) 45%, white)`, boxShadow: "inset 1px 0 0 color-mix(in oklab, black 25%, transparent), 1px 1px 2px color-mix(in oklab, black 20%, transparent)" }} />
                      <span
                         ref={node => {
                            swings.current[i] = node;
@@ -1190,7 +1198,7 @@ export function TeamLanyardRail({ items, eyebrow, heading, caption, action, auto
                            aria-hidden="true"
                            className="absolute inset-0 block"
                            style={{ ["--stretch" as string]: "0px" }}>
-                           <span className="absolute block bg-black/15 blur-[2px] dark:bg-black/45" style={{ left: W / 2 - g.strapW / 2 + 3 * g.u, top: g.pivotY + 3, width: g.strapW, height: strap }} />
+                           <span className="absolute block bg-black/15 blur-[2px] dark:bg-black/45" style={{ left: W / 2 - g.strapW / 2 + 2.5 * g.u, top: g.pivotY + 2, width: g.strapW, height: strap }} />
                            <span
                               className="absolute block"
                               style={{
@@ -1201,14 +1209,14 @@ export function TeamLanyardRail({ items, eyebrow, heading, caption, action, auto
                                  background: ["repeating-linear-gradient(135deg, color-mix(in oklab, white 16%, transparent) 0 1px, transparent 1px 3px)", "repeating-linear-gradient(45deg, color-mix(in oklab, black 13%, transparent) 0 1px, transparent 1px 3px)", "linear-gradient(90deg, color-mix(in oklab, currentColor 68%, black) 0%, currentColor 16%, color-mix(in oklab, currentColor 86%, white) 48%, currentColor 80%, color-mix(in oklab, currentColor 66%, black) 100%)"].join(","),
                               }}>
                               <span className="absolute inset-y-0 left-[1.5px] right-[1.5px] block border-x border-dashed border-white/35" />
-                              <span className="absolute inset-x-0 top-0 block bg-black/25" style={{ height: 7 * g.u }} />
-                              <span className="absolute inset-x-[2px] block border-t border-dashed border-white/45" style={{ top: 9 * g.u }} />
+                              <span className="absolute inset-x-0 top-0 block bg-black/25" style={{ height: 6 * g.u }} />
+                              <span className="absolute inset-x-[2px] block border-t border-dashed border-white/45" style={{ top: 8 * g.u }} />
                            </span>
-                           <svg aria-hidden="true" className="absolute overflow-visible" style={{ left: W / 2 - g.strapW * 0.75, top: g.pivotY - 4 * g.u, width: g.strapW * 1.5, height: 8 * g.u }} viewBox="0 0 30 16" preserveAspectRatio="none">
+                           <svg aria-hidden="true" className="absolute overflow-visible" style={{ left: W / 2 - g.strapW * 0.75, top: g.pivotY - 3.5 * g.u, width: g.strapW * 1.5, height: 7 * g.u }} viewBox="0 0 30 16" preserveAspectRatio="none">
                               <rect x="2" y="3" width="26" height="10" rx="5" fill="none" stroke="color-mix(in oklab, var(--color-muted-foreground) 40%, white)" strokeWidth="3" />
                               <path d="M7 4.5 H23" stroke="white" strokeOpacity="0.6" strokeWidth="1" />
                            </svg>
-                           <span className="absolute block rounded-[2px]" style={{ left: W / 2 - g.strapW / 2 - 1.5, top: g.pivotY + strap - g.crimp * 0.4, width: g.strapW + 3, height: g.crimp, background: METAL, boxShadow: "0 1px 1.5px color-mix(in oklab, black 30%, transparent)" }} />
+                           <span className="absolute block rounded-[2px]" style={{ left: W / 2 - g.strapW / 2 - 1.2, top: g.pivotY + strap - g.crimp * 0.4, width: g.strapW + 2.4, height: g.crimp, background: METAL, boxShadow: "0 1px 1.5px color-mix(in oklab, black 30%, transparent)" }} />
                            <span
                               className="absolute block rounded-full"
                               style={{
@@ -1237,13 +1245,13 @@ export function TeamLanyardRail({ items, eyebrow, heading, caption, action, auto
                            data-hang
                            className="absolute left-0 block"
                            style={{ top: clipTop, width: W, height: cardOffset + g.H, transformOrigin: `${W / 2}px 0px` }}>
-                           <span aria-hidden="true" className="absolute left-0 block" style={{ top: cardOffset, width: W, height: g.H, filter: `blur(${Math.max(4, 8 * g.u).toFixed(1)}px)` }}>
+                           <span aria-hidden="true" className="absolute left-0 block" style={{ top: cardOffset, width: W, height: g.H, filter: `blur(${Math.max(3.5, 7 * g.u).toFixed(1)}px)` }}>
                               <span
                                  ref={node => {
                                     shadows.current[i] = node;
                                  }}
                                  data-shadow
-                                 className="absolute inset-0 block rounded-[10px] bg-black/25 dark:bg-black/70"
+                                 className="absolute inset-0 block rounded-[9px] bg-black/25 dark:bg-black/65"
                               />
                            </span>
                            <button
@@ -1258,7 +1266,7 @@ export function TeamLanyardRail({ items, eyebrow, heading, caption, action, auto
                               aria-label={`${item.name}, ${item.role}`}
                               aria-describedby={`${uid}-caption`}
                               aria-pressed={isFlipped}
-                              className="pointer-events-auto absolute left-0 cursor-pointer rounded-[0.85em] p-0 text-left outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring"
+                              className="pointer-events-auto absolute left-0 cursor-pointer rounded-[0.8em] p-0 text-left outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring"
                               style={{ top: cardOffset, width: W, height: g.H, fontSize: base }}
                               onFocus={() => {
                                  setFocusIndex(i);
@@ -1282,8 +1290,8 @@ export function TeamLanyardRail({ items, eyebrow, heading, caption, action, auto
                                  <BadgeFaces item={item} tone={tone} />
                               </span>
                            </button>
-                           <span aria-hidden="true" className="pointer-events-none absolute block" style={{ left: W / 2 - g.clipW / 2, top: 0, width: g.clipW, height: g.clipH + 10 * g.u }}>
-                              <span className="absolute left-1/2 block -translate-x-1/2 rounded-b-[2px]" style={{ top: g.clipH * 0.7, width: g.clipW * 0.42, height: cardOffset - g.clipH * 0.7 + 0.72 * base + 0.3 * base, background: PLASTIC }} />
+                           <span aria-hidden="true" className="pointer-events-none absolute block" style={{ left: W / 2 - g.clipW / 2, top: 0, width: g.clipW, height: g.clipH + 9 * g.u }}>
+                              <span className="absolute left-1/2 block -translate-x-1/2 rounded-b-[2px]" style={{ top: g.clipH * 0.7, width: g.clipW * 0.42, height: cardOffset - g.clipH * 0.7 + 0.64 * base + 0.26 * base, background: PLASTIC }} />
                               <span className="absolute inset-x-0 top-0 block" style={{ height: g.clipH, clipPath: "polygon(24% 0, 76% 0, 100% 72%, 94% 100%, 6% 100%, 0 72%)", background: PLASTIC }} />
                               <span className="absolute block bg-white/50" style={{ left: "30%", right: "30%", top: 1, height: 1 }} />
                               <span className="absolute left-1/2 block -translate-x-1/2 rounded-full bg-background" style={{ top: g.clipH * 0.14, width: g.clipH * 0.34, height: g.clipH * 0.34, boxShadow: "inset 0 1px 1px color-mix(in oklab, black 45%, transparent)" }} />
@@ -1296,7 +1304,7 @@ export function TeamLanyardRail({ items, eyebrow, heading, caption, action, auto
                                  data-links
                                  className="pointer-events-none absolute left-0 transition-opacity duration-150 motion-reduce:transition-none"
                                  style={{ top: cardOffset, width: W, height: g.H, fontSize: base, opacity: 0, visibility: "hidden" }}>
-                                 <div className="absolute bottom-[0.75em] left-[0.6em] flex flex-col items-start gap-[0.1em]">
+                                 <div className="absolute bottom-[0.7em] left-[0.78em] flex flex-col items-start gap-[0.08em]">
                                     {links.map(link => (
                                        <a
                                           key={link.label}
@@ -1308,7 +1316,7 @@ export function TeamLanyardRail({ items, eyebrow, heading, caption, action, auto
                                           onFocus={stop}
                                           className={`${LINK_ROW} pointer-events-auto text-card-foreground outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring`}>
                                           <LinkIcon label={link.label} />
-                                          {link.label}
+                                          <span className="max-w-[5.2em] truncate">{link.label}</span>
                                        </a>
                                     ))}
                                  </div>
@@ -1322,34 +1330,66 @@ export function TeamLanyardRail({ items, eyebrow, heading, caption, action, auto
 
             {size.carousel && (
                <>
-                  <div aria-hidden="true" className="pointer-events-none absolute inset-y-0 left-0 z-50 w-12 bg-gradient-to-r from-background from-25% to-transparent" />
-                  <div aria-hidden="true" className="pointer-events-none absolute inset-y-0 right-0 z-50 w-12 bg-gradient-to-l from-background from-25% to-transparent" />
+                  <div aria-hidden="true" className="pointer-events-none absolute inset-y-0 left-0 z-50 w-8 bg-gradient-to-r from-background from-15% to-transparent sm:w-12" />
+                  <div aria-hidden="true" className="pointer-events-none absolute inset-y-0 right-0 z-50 w-8 bg-gradient-to-l from-background from-15% to-transparent sm:w-12" />
                </>
             )}
          </div>
 
          {size.carousel && count > 1 && (
-            <div className="relative z-10 mt-1 flex justify-center gap-1.5" role="group" aria-label={labels.show}>
-               {items.map((item, i) => (
-                  <button
-                     key={item.id}
-                     type="button"
-                     aria-label={`${labels.show} ${item.name}`}
-                     aria-current={centerIndex === i}
-                     onClick={() => {
-                        stop();
-                        setActive(i);
-                     }}
-                     className={`h-1.5 rounded-full outline-none transition-[width,background-color] duration-300 focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none ${centerIndex === i ? "w-6 bg-foreground" : "w-1.5 bg-foreground/25 hover:bg-foreground/45"}`}
-                  />
-               ))}
+            <div className="relative z-10 mt-1 flex items-center justify-center px-4">
+               <div className="inline-flex max-w-full items-center gap-1.5 overflow-x-auto rounded-full border border-border/60 bg-muted/30 px-2.5 py-1 backdrop-blur-sm [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" role="group" aria-label={labels.show}>
+                  {count <= 12 ? (
+                     items.map((item, i) => (
+                        <button
+                           key={item.id}
+                           type="button"
+                           aria-label={`${labels.show} ${item.name}`}
+                           aria-current={centerIndex === i}
+                           onClick={() => {
+                              stop();
+                              setActive(i);
+                           }}
+                           className={`h-1.5 shrink-0 rounded-full outline-none transition-all duration-300 focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none ${centerIndex === i ? "w-5 bg-foreground" : "w-1.5 bg-foreground/25 hover:bg-foreground/45"}`}
+                        />
+                     ))
+                  ) : (
+                     <>
+                        <button
+                           type="button"
+                           aria-label="Previous badge"
+                           onClick={() => {
+                              stop();
+                              const cur = centerIndex ?? 0;
+                              setActive((cur - 1 + count) % count);
+                           }}
+                           className="px-1 text-[11px] font-medium text-muted-foreground transition-colors hover:text-foreground">
+                           ←
+                        </button>
+                        <span className="min-w-[3.6rem] text-center font-mono text-[11px] font-medium text-foreground/85">
+                           {String((centerIndex ?? 0) + 1).padStart(2, "0")} <span className="text-muted-foreground">/</span> {String(count).padStart(2, "0")}
+                        </span>
+                        <button
+                           type="button"
+                           aria-label="Next badge"
+                           onClick={() => {
+                              stop();
+                              const cur = centerIndex ?? 0;
+                              setActive((cur + 1) % count);
+                           }}
+                           className="px-1 text-[11px] font-medium text-muted-foreground transition-colors hover:text-foreground">
+                           →
+                        </button>
+                     </>
+                  )}
+               </div>
             </div>
          )}
 
-         <div className="relative z-10 flex flex-col items-center gap-3 px-6 pb-7 pt-3 text-center">
-            <div id={`${uid}-caption`} aria-live="polite" className="min-h-[2.6rem]">
-               <p className="text-sm font-medium">{line1}</p>
-               <p className="mt-0.5 text-[13px] text-muted-foreground">{line2}</p>
+         <div className="relative z-10 flex flex-col items-center gap-2 px-4 pb-4 pt-2 text-center sm:px-6 sm:pb-5">
+            <div id={`${uid}-caption`} aria-live="polite" className="min-h-[2.2rem]">
+               <p className="text-xs font-medium tracking-tight sm:text-[13px]">{line1}</p>
+               <p className="mt-0.5 text-[11px] text-muted-foreground sm:text-xs">{line2}</p>
                {showingBack && person?.bio && <span className="sr-only">{person.bio}</span>}
             </div>
             {action}

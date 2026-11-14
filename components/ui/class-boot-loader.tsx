@@ -94,7 +94,7 @@ export function ClassBootLoader() {
               Pre-Mounting 3D Scenes &amp; Archive
             </p>
             <h2 className="mt-1 text-lg font-extrabold tracking-tight text-white sm:text-xl">
-              Kapsul Kelulusan &amp; Papan Cita-Cita 3D
+              Kapsul Kelulusan &amp; Dream Board 3D
             </h2>
           </div>
           <span
